@@ -65,9 +65,9 @@ names(bi_plots) <- name_n
 rm(dat, y, sep, i, name_n)
 
 head(bi_plots)
+str(bi_plots)
 
-
-
+plot(bi_plots$rw)
 
 
 
