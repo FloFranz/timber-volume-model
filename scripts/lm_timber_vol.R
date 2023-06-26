@@ -109,10 +109,28 @@ bi_vorr_2$bhd=d
 bi_vorr <- rbind(bi_vorr, bi_vorr_2)
 rm(bi_vorr_2, d)
 
-# wieder originale Baumart
+# add original tree species again
 bi_vorr$ba <- bi_vorr$ba1
 bi_vorr$ba1 <- NULL
 
 head(bi_vorr)
+
+# number of stems per ha
+
+# concentric sample circles:
+#	r = 6 m all trees 
+#	r = 13 m all trees with BHD >= 30 cm
+# radius must be projected into the plane
+
+# correct sample circle sizes with slope, calculate N_ha
+# inclination from degrees in rad
+bi_plots$hang_rad <- (pi/180) * bi_plots$hang
+bi_plots_vorr <- merge(bi_vorr, bi_plots[,c("kspnr","hang_rad")], by="kspnr")
+
+# r_plane = r_slope * cos(slope_rad)
+bi_plots_vorr$nha <- ifelse(bi_plots_vorr$bhd < 30, 10000 / (pi * 6**2 * cos(bi_plots_vorr$hang_rad)),
+                            10000 / (pi * 13**2 * cos(bi_plots_vorr$hang_rad)))
+
+head(bi_plots_vorr)
 
 
