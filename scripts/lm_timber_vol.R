@@ -26,7 +26,7 @@ bi_path <- paste0(raw_data_dir, 'BI/')
 
 
 
-# 02 - data reading and preperation
+# 02 - data reading
 #-------------------------------------
 
 # read nDSM
@@ -40,34 +40,33 @@ terra::plot(ndsm)
 # read BI data
 bi_tables <- list.files(bi_path)
 
-bi_plots <- read.table(paste0(bi_path, bi_tables),
+bi_vorr <- read.table(paste0(bi_path, bi_tables[1]),
+                      header = T, sep = ';')
+
+bi_plots <- read.table(paste0(bi_path, bi_tables[2]),
                        header = T, sep = ';')
 
+head(bi_vorr)
 head(bi_plots)
 
-# column names to lower cases
-names(bi_plots) <- tolower(names(bi_plots))
 
-dat <- data.frame(name = names(bi_plots), pos_sep = NA)
 
-# get position of last separator in column name strings
-for(i in 1:dim(dat)[1]) {
-  
-  y <- dat[i,]
-  sep <- unlist(gregexpr('_', y, fixed = T))
-  dat[i,]$pos_sep = max(sep)
-  
-}
+# 03 - data preperation
+#-------------------------------------
 
-# replace column names
-name_n <- substr(dat$name, dat$pos_sep + 1, nchar(dat$name))  
-names(bi_plots) <- name_n
-rm(dat, y, sep, i, name_n)
+source('src/format_data.R', local = TRUE)
+
+bi_plots <- format_data(bi_plots)
+bi_vorr <- format_data(bi_vorr)
 
 head(bi_plots)
 str(bi_plots)
+head(bi_vorr)
+str(bi_vorr)
 
-plot(bi_plots$rw)
+
+
+
 
 
 
