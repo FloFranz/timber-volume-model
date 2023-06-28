@@ -59,7 +59,7 @@ head(bi_plots)
 str(bi_plots)
 
 # select needed columns
-bi_plots <- bi_plots[,c("key", "kspnr", "fa", "rw", "hw", "stj")]
+bi_plots <- bi_plots[,c('key', 'kspnr', 'fa', 'rw', 'hw', 'stj')]
 
 # filter plots by forestry offices Dassel (254) and Neuhaus (268) and year 2022
 fa_dassel <- bi_plots[bi_plots$fa == 254 & bi_plots$stj == 2022,]
@@ -82,8 +82,8 @@ points_dassel_neuhaus <- terra::vect(pts, type = 'points', crs = 'EPSG:31467')
 
 # assign CRS to the raster (ETRS89 / UTM zone 32N)
 # and project it to the CRS of the multipoints
-terra::crs(ndsm) <- "EPSG:25832"
-ndsm_projected <- terra::project(ndsm, "EPSG:31467")
+terra::crs(ndsm) <- 'EPSG:25832'
+ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
 
 # plot the raster with the points
 # terra::plot(ndsm_projected)
@@ -96,6 +96,11 @@ terra::points(points_dassel_neuhaus)
 
 # 04 - calculation of metrics
 #-------------------------------------
+
+# 04.1
+# creation of a data frame with extracted height values
+# within the sample plot points
+#--------------------------------------------------------
 
 # create buffer of 13 m around the point centroids
 # --> radius 13 m
@@ -162,7 +167,7 @@ for (i in 1:num_pairs) {
   value_column <- 2*i  # value column index
   
   # assign the "plot_" prefix with the corresponding number as the column name
-  colnames(extracted_val_df)[value_column] <- paste0("plot_", i)
+  colnames(extracted_val_df)[value_column] <- paste0('plot_', i)
   
   # store the index of the ID column to be removed
   id_columns_to_remove <- c(id_columns_to_remove, id_column)
@@ -172,6 +177,9 @@ for (i in 1:num_pairs) {
 extracted_val_df <- extracted_val_df[, -id_columns_to_remove]
 
 head(extracted_val_df)
+
+# save data frame with the extracted values within the sample plots
+saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots.RDS'))
 
 
 
