@@ -72,11 +72,13 @@ fa_dassel_neuhaus <- merge(fa_dassel, fa_neuhaus, all = T)
 pts <- matrix(c(fa_dassel_neuhaus$rw, fa_dassel_neuhaus$hw), ncol = 2)
 
 # create simple feature geometry 'multipoint' from the rw and hw
-mp <- sf::st_multipoint(pts)
+# mp <- sf::st_multipoint(pts)
+
+points_dassel_neuhaus <- terra::vect(pts, type = 'points', crs = 'EPSG:31467')
 
 # create simple feature geometry column from the multipoint object
 # assign CRS (DHDN / 3-degree Gauss-Kruger zone 3)
-sfc <- sf::st_sfc(mp, crs = "EPSG:31467")
+# sfc <- sf::st_sfc(mp, crs = "EPSG:31467")
 
 # assign CRS to the raster (ETRS89 / UTM zone 32N)
 # and project it to the CRS of the multipoints
@@ -84,8 +86,103 @@ terra::crs(ndsm) <- "EPSG:25832"
 ndsm_projected <- terra::project(ndsm, "EPSG:31467")
 
 # plot the raster with the points
+# terra::plot(ndsm_projected)
+# terra::points(sfc[[1]])
+
 terra::plot(ndsm_projected)
-terra::points(sfc[[1]])
+terra::points(points_dassel_neuhaus)
+
+
+
+# 04 - calculation of metrics
+#-------------------------------------
+
+# create buffer of 13 m around the point centroids
+# --> radius 13 m
+points_dassel_neuhaus_buffered <- terra::buffer(points_dassel_neuhaus, 13)
+
+terra::plot(ndsm_projected)
+terra::points(points_dassel_neuhaus_buffered)
+
+# extract the values from the raster (height values of the nDSM)
+# that are within the buffered points (now circles --> sample plots)
+extracted_val <- terra::extract(ndsm_projected, points_dassel_neuhaus_buffered, raw = T)
+
+# remove NA (= buffered points not lying within the nDSM)
+extracted_val <- na.omit(extracted_val)
+
+# convert the matrix to a data frame
+extracted_val_df <- as.data.frame(extracted_val)
+head(extracted_val_df)
+
+# split the data frame into several data frames
+# corresponding to the number of sample plots within the nDSM
+extracted_val_df_list <- split(extracted_val_df, extracted_val_df$ID)
+
+# the resulting data frames do not all have the same length
+# --> empty rows must be filled with NA
+# function to pad data frames with NA rows
+max_rows <- max(sapply(extracted_val_df_list, nrow))
+
+pad_with_na <- function(df, max_rows) {
+  
+  if (nrow(df) < max_rows) {
+    
+    extra_rows <- max_rows - nrow(df)
+    
+    extra_df <- data.frame(matrix(NA, nrow = extra_rows, ncol = ncol(df)))
+    
+    colnames(extra_df) <- colnames(df)
+    
+    df <- bind_rows(df, extra_df)
+    
+  }
+  
+  df
+  
+}
+
+# apply padding to each data frame in the data frame list
+extracted_val_df_list <- lapply(extracted_val_df_list, pad_with_na, max_rows = max_rows)
+
+# bind the data frames by columns
+extracted_val_df <- dplyr::bind_cols(extracted_val_df_list)
+head(extracted_val_df)
+
+# get the number of ID and value column pairs
+num_pairs <- ncol(extracted_val_df) / 2
+
+# vector to store the indices of the ID columns to be removed
+id_columns_to_remove <- c()
+
+# iterate over each pair
+for (i in 1:num_pairs) {
+  
+  id_column <- 2*i - 1  # ID column index
+  value_column <- 2*i  # value column index
+  
+  # assign the "plot_" prefix with the corresponding number as the column name
+  colnames(extracted_val_df)[value_column] <- paste0("plot_", i)
+  
+  # store the index of the ID column to be removed
+  id_columns_to_remove <- c(id_columns_to_remove, id_column)
+}
+
+# remove the ID columns
+extracted_val_df <- extracted_val_df[, -id_columns_to_remove]
+
+head(extracted_val_df)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
