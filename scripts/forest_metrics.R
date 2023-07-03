@@ -107,7 +107,7 @@ terra::points(points_dassel_neuhaus)
 points_dassel_neuhaus_buffered <- terra::buffer(points_dassel_neuhaus, 13)
 
 terra::plot(ndsm_projected)
-terra::points(points_dassel_neuhaus_buffered)
+terra::plot(points_dassel_neuhaus_buffered, add = T)
 
 # extract the values from the raster (height values of the nDSM)
 # that are within the buffered points (now circles --> sample plots)
@@ -171,6 +171,7 @@ for (i in 1:num_pairs) {
   
   # store the index of the ID column to be removed
   id_columns_to_remove <- c(id_columns_to_remove, id_column)
+  
 }
 
 # remove the ID columns
@@ -179,14 +180,35 @@ extracted_val_df <- extracted_val_df[, -id_columns_to_remove]
 head(extracted_val_df)
 
 # save data frame with the extracted values within the sample plots
-saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots.RDS'))
+if (!file.exists(paste0(processed_data_dir, 'extr_val_plots.RDS'))) {
+  
+  saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots.RDS'))
+  
+} else {
+  
+  invisible()
+  
+}
 
 
+# 04.2
+# calculation of metrics based on the height values
+# within the sample plot points
+#--------------------------------------------------------
 
+# calculate some metrics 
+# --> potential explanatory variables for a timber volume model
+metrics <- sapply(extracted_val_df, function(x) c(mean = mean(x, na.rm = TRUE),
+                                                  sd   = sd(x, na.rm = TRUE),
+                                                  min  = min(x, na.rm = TRUE),
+                                                  max  = max(x, na.rm = TRUE),
+                                                  quantile(x, 
+                                                           probs = c(0.05, 0.1, 0.25, 0.5,
+                                                                     0.75, 0.9, 0.99),
+                                                           na.rm = TRUE)))
 
-
-
-
+# transpose the result for a more convenient format
+metrics_new <- t(metrics)
 
 
 
