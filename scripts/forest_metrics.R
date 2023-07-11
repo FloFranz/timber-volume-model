@@ -196,19 +196,41 @@ if (!file.exists(paste0(processed_data_dir, 'extr_val_plots.RDS'))) {
 # within the sample plot points
 #--------------------------------------------------------
 
-# calculate some metrics 
+# calculate some metrics
 # --> potential explanatory variables for a timber volume model
-metrics <- sapply(extracted_val_df, function(x) c(mean = mean(x, na.rm = TRUE),
-                                                  sd   = sd(x, na.rm = TRUE),
-                                                  min  = min(x, na.rm = TRUE),
-                                                  max  = max(x, na.rm = TRUE),
+#
+# height metrics: mean, standard deviation, minimum, maximum,
+# percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
+#                    60th, 70th, 75th, 80th, 90th, 95th, 99th),
+# skewness kurtosis, coefficient of variation
+# (all three as conventional moments and as L-moments),
+# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001
+# for the rest, see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
+metrics <- sapply(extracted_val_df, function(x) c(mean = mean(x, na.rm = T),
+                                                  sd   = sd(x, na.rm = T),
+                                                  min  = min(x, na.rm = T),
+                                                  max  = max(x, na.rm = T),
                                                   quantile(x, 
-                                                           probs = c(0.05, 0.1, 0.25, 0.5,
-                                                                     0.75, 0.9, 0.99),
-                                                           na.rm = TRUE)))
+                                                           probs = c(0.01, 0.05, 0.1, 0.2, 0.25,
+                                                                     0.3, 0.4, 0.5, 0.6, 0.7,
+                                                                     0.75, 0.8, 0.9, 0.95, 0.99),
+                                                           na.rm = T),
+                                                  skewness = moments::skewness(x, na.rm = T),
+                                                  kurtosis = moments::kurtosis(x, na.rm = T),
+                                                  cv = sd(x, na.rm = T) / mean(x, na.rm = T) * 100,
+                                                  lmom_skew = lmom::samlmu(x)[3],
+                                                  lmom_kurt = lmom::samlmu(x)[4],
+                                                  lmom_cv = lmom::samlmu(x, ratios = F)[2] / lmom::samlmu(x, ratios = F)[1],
+                                                  crr = ((mean(x, na.rm = T) - min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T)))))
 
 # transpose the result for a more convenient format
 metrics_new <- t(metrics)
+
+# plot correlogram of the metrics
+corrplot::corrplot(cor(metrics_new), method = 'circle', type= 'full')
+
+#GGally::ggcorr(metrics_new, method = c('everything', 'pearson'))
+
 
 
 
