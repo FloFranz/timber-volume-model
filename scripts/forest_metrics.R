@@ -17,9 +17,13 @@ source('src/setup.R', local = TRUE)
 # 01 - set file paths
 #-------------------------------------
 
-# input path to DSMs and nDSM
+# input path to DSM and nDSM raster files
 dsm_path <- paste0(raw_data_dir, 'DSMs/')
 ndsm_path <- paste0(raw_data_dir, 'nDSMs/')
+
+# input path to DSM and nDSM point clouds
+dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
+ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 
 # input path to terrestrial data
 bi_path <- paste0(raw_data_dir, 'BI/')
@@ -29,13 +33,16 @@ bi_path <- paste0(raw_data_dir, 'BI/')
 # 02 - data reading
 #-------------------------------------
 
-# read nDSM
+# read nDSM raster and point clouds
 ndsm_files <- list.files(ndsm_path)
+ndsm_pc_files <- list.files(ndsm_pc_path)
 
 ndsm <- terra::rast(paste0(ndsm_path, ndsm_files))
+ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files))
 
 # quick plot
 terra::plot(ndsm)
+lidR::plot(ndsm_pc)
 
 # read BI data
 bi_tables <- list.files(bi_path)
