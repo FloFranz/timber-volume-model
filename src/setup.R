@@ -17,16 +17,20 @@
 if (!file.exists(paste('data')) |
     (!file.exists(paste('data/raw_data')) |
      (!file.exists(paste('data/raw_data/DSMs')) |
+      (!file.exists(paste('data/raw_data/DSMs_laz')) |
       (!file.exists(paste('data/raw_data/nDSMs')) |
-       (!file.exists(paste('data/raw_data/BI')) |
-        (!file.exists(paste('data/raw_data/orga')) |
-         (!file.exists(paste('data/processed_data')) |
-          (!file.exists(paste('data/metadata')))))))))) {
+       (!file.exists(paste('data/raw_data/nDSMs_laz')) |
+        (!file.exists(paste('data/raw_data/BI')) |
+         (!file.exists(paste('data/raw_data/orga')) |
+          (!file.exists(paste('data/processed_data')) |
+           (!file.exists(paste('data/metadata')))))))))))) {
   
   dir.create('data')
   dir.create('data/raw_data')
   dir.create('data/raw_data/DSMs')
+  dir.create('data/raw_data/DSMs_laz')
   dir.create('data/raw_data/nDSMs')
+  dir.create('data/raw_data/nDSMs_laz')
   dir.create('data/raw_data/BI')
   dir.create('data/raw_data/orga')
   dir.create('data/processed_data')
