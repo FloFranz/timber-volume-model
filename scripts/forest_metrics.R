@@ -87,10 +87,13 @@ points_dassel_neuhaus <- terra::vect(pts, type = 'points', crs = 'EPSG:31467')
 # assign CRS (DHDN / 3-degree Gauss-Kruger zone 3)
 # sfc <- sf::st_sfc(mp, crs = "EPSG:31467")
 
-# assign CRS to the raster (ETRS89 / UTM zone 32N)
+# assign CRS to raster and point clouds (ETRS89 / UTM zone 32N)
 # and project it to the CRS of the multipoints
 terra::crs(ndsm) <- 'EPSG:25832'
+lidR::crs(ndsm_pc) <- 'EPSG:25832'
+
 ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
+ndsm_pc_projected <- sf::st_transform(ndsm_pc, sf::st_crs(31467))
 
 # plot the raster with the points
 # terra::plot(ndsm_projected)
