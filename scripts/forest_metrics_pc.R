@@ -87,11 +87,46 @@ ndsm_pc_projected <- lidR::filter_poi(ndsm_pc_projected, Z >= 0)
 
 # 04.1
 # calculation of metrics based on the height values in
-# the point clouds within the sample plots (radius 13m)
+# the point clouds within the sample plots
 #--------------------------------------------------------
 
+# create function that calculates several metrics
+# --> potential explanatory variables for a timber volume model
+#
+# height metrics: mean, standard deviation, minimum, maximum,
+# percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
+#                    60th, 70th, 75th, 80th, 90th, 95th, 99th),
+# skewness kurtosis, coefficient of variation
+# (all three as conventional moments and as L-moments),
+# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001
+# for the rest, see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
+calc_metrics <- function(z) {
+  
+  probs <- c(0.01, 0.05, 0.1, 0.2, 0.25,
+             0.3, 0.4, 0.5, 0.6, 0.7,
+             0.75, 0.8, 0.9, 0.95, 0.99)
+  
+  zq <- stats::quantile(z, probs, na.rm = T)
+  
+  list(zmean = mean(z, na.rm = T), zsd = sd(z, na.rm = T),
+       zmin = min(z, na.rm = T), zmax = max(z, na.rm = T),
+       zq1 = zq[1], zq5 = zq[2], zq10 = zq[3], zq20 = zq[4],
+       zq25 = zq[5], zq30 = zq[6], z40 = zq[7], zq50 = zq[8],
+       zq60 = zq[9], zq70 = zq[10], zq75 = zq[11], zq80 = zq[12],
+       zq90 = zq[13], zq95 = zq[14], zq99 = zq[15],
+       zskew = moments::skewness(z, na.rm = T),
+       zkurt = moments::kurtosis(z, na.rm = T),
+       zcv = sd(z, na.rm = T) / mean(z, na.rm = T) * 100,
+       zskew_lmom = lmom::samlmu(z)[3],
+       zkurt_lmom = lmom::samlmu(z)[4],
+       zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
+       zcorr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))))
+  
+}
 
-plot_metrics <- lidR::plot_metrics(ndsm_pc_projected, ~mean(Z),
+# calculate the predefined metrics for each plot (radius = 13 m) 
+# within the normalized point cloud
+plot_metrics <- lidR::plot_metrics(ndsm_pc_projected, ~calc_metrics(Z),
                                    bi_plots_cropped, radius = 13)
 
 
