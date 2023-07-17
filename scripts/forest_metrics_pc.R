@@ -85,9 +85,7 @@ ndsm_pc_projected <- lidR::filter_poi(ndsm_pc_projected, Z >= 0)
 
 
 
-# 04.1
-# calculation of metrics based on the height values in
-# the point clouds within the sample plots
+# 04 - calculation of metrics
 #--------------------------------------------------------
 
 # create function that calculates several metrics
@@ -128,6 +126,17 @@ calc_metrics <- function(z) {
 # within the normalized point cloud
 plot_metrics <- lidR::plot_metrics(ndsm_pc_projected, ~calc_metrics(Z),
                                    bi_plots_cropped, radius = 13)
+
+# save data frame with the plots and calculated metrics
+if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
+  
+  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+  
+} else {
+  
+  print('File plot_metrics_pc.RDS already exists.')
+  
+}
 
 
 
