@@ -209,6 +209,17 @@ plot_metrics <- sapply(extracted_val_df, function(z)
 # transpose the result for a more convenient format
 plot_metrics_transposed <- t(plot_metrics)
 
+# save data frame with the plots and calculated metrics
+if (!file.exists(paste0(processed_data_dir, 'plot_metrics_sm.RDS'))) {
+  
+  saveRDS(plot_metrics_transposed, file = paste0(processed_data_dir, 'plot_metrics_sm.RDS'))
+  
+} else {
+  
+  print('File plot_metrics_sm.RDS already exists.')
+  
+}
+
 # plot correlogram of the metrics
 corrplot::corrplot(cor(metrics_new), method = 'circle', type= 'full')
 
