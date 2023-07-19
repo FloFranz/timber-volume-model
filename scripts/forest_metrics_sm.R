@@ -65,7 +65,7 @@ bi_plots <- bi_plots[,c('key', 'kspnr', 'fa', 'rw', 'hw', 'stj')]
 bi_plots <- bi_plots[bi_plots$stj == 2022,]
 
 # add column with plot number
-bi_plots$plot <- paste0('plot_', 1:nrow(bi_plots))
+bi_plots$plot <- 1:nrow(bi_plots)
 
 head(bi_plots)
 str(bi_plots)
