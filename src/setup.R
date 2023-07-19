@@ -128,4 +128,5 @@ load_packages <- function(packages) {
 }
 
 
-load_packages(c('terra', 'raster', 'lidR' , 'dplyr', 'ggplot2'))
+load_packages(c('terra', 'raster', 'lidR' , 'sf', 'stats',
+                'moments', 'lmom', 'dplyr', 'ggplot2'))
