@@ -323,9 +323,9 @@ points(tick_labels, plot_metrics_sm$lmom_cv.l_2,
        col = 'red', pch = 20)
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 
-#------------------------------------
+#--------------
 # plot of crr
-#------------------------------------
+#--------------
 
 # generate the x-axis tick labels
 tick_labels <- 1:10
@@ -343,6 +343,42 @@ points(tick_labels, plot_metrics_sm$crr,
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 legend('topleft', legend = c('point cloud', 'nDSM'),
        col = c('blue', 'red'), pch = 20, bty = 'n', x.intersp = 0.3)
+
+
+# 02 - forest metrics comparison
+# 02.1: significance tests
+#-------------------------------------
+
+# convert plot_metrics_pc to data frame
+# and remove unneeded columns
+plot_metrics_pc <- as.data.frame(plot_metrics_pc)
+plot_metrics_pc <- plot_metrics_pc[, -(c(1:7, ncol(plot_metrics_pc)))]
+
+# perform t-tests for the respective metrics
+# to determine possible significant differences
+# between point cloud and nDSM metrics
+ttest_results <- list()
+
+column_names_pc <- names(plot_metrics_pc)
+column_names_sm <- names(plot_metrics_sm)
+
+for (i in 1:ncol(plot_metrics_pc)) {
+  
+  ttest_result <- stats::t.test(plot_metrics_pc[, i], plot_metrics_sm[, i], 
+                                var.equal = T, alternative = 'two.sided')
+  
+  ttest_results[[paste(column_names_pc[i], column_names_sm[i], sep = '-')]] <- ttest_result
+  
+}
+
+# print the t-test results
+for (col_pair in names(ttest_results)) {
+  
+  cat('Column Pair:', col_pair, '\n')
+  print(ttest_results[[col_pair]])
+  cat('\n')
+  
+}
 
 
 
