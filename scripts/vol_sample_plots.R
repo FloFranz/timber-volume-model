@@ -156,34 +156,41 @@ rm(dat2, dat)
 
 
 # 03 - calculate timber volume
-# 03.1: # single tree volume
+# 03.1: single tree volume
 #-------------------------------------
 
-# neue Spalte ohne value
-vor$vol=NA
+# add new empty column to bi_points_trees
+bi_points_trees$vol <- NA
 
-# umcodieren, da Baumarten nicht in treegross enthalten
-vor$ba1=ifelse(vor$ba==561 | vor$ba==526 , 511, 
-               ifelse(vor$ba==716, 711, vor$ba))
+# recode tree species befor applying treegross
+bi_points_trees$ba1 <- ifelse(bi_points_trees$ba == 561 | bi_points_trees$ba == 526 , 511,
+                       ifelse(bi_points_trees$ba == 716, 711, bi_points_trees$ba))
 
-# leere Tabelle zum Sammeln
-kop=vor[-(1:dim(vor)[1]),]
+# create empty table
+cop <- bi_points_trees[-(1:dim(bi_points_trees)[1]),]
 
 
-for(i in unique(vor$ba1)){
+for(i in unique(bi_points_trees$ba1)){
   
   print(i)
   
-  vor2=vor[vor$ba1==i,]
-  vor2$vol=tg.volume(species=i, t.d=vor2$bhd, t.h=vor2$hoe_mod, info = F)
-  kop=rbind(kop,vor2)
+  bi_points_trees2 <- bi_points_trees[bi_points_trees$ba1 == i,]
+  
+  bi_points_trees2$vol <- anstaltspaket::tg.volume(species = i, 
+                                                   t.d = bi_points_trees2$bhd,
+                                                   t.h = bi_points_trees2$hoe_mod, 
+                                                   info = F)
+  
+  cop <- rbind(cop, bi_points_trees2)
+  
 }
 
-
-vor=kop
-rm(kop,i,vor2)
-vor$ba1=NULL
-vor$id2=NULL
+# copy the table into the original
+# delete the copy and unneeded columns
+bi_points_trees <- cop
+rm(cop, i, bi_points_trees2)
+bi_points_trees$ba1=NULL
+bi_points_trees$id2=NULL
 
 
 
