@@ -194,22 +194,25 @@ bi_points_trees$id2=NULL
 
 
 
+# 03.2: timber volume per sample point
+#--------------------------------------
 
+# group averages of vol
+bi_points_trees$vol_ha <- stats::ave(bi_points_trees$vol * bi_points_trees$nha,
+                                     bi_points_trees$key, bi_points_trees$kspnr,
+                                     FUN = sum)
 
+# extract unique volumes for all sample points
+vol_stp <- unique(bi_points_trees[,c("key", "kspnr", "rw", "hw", "vol_ha")])
+head(vol_stp)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# save data frame with the extracted volumes per sample points
+if (!file.exists(paste0(processed_data_dir, 'vol_stp.RDS'))) {
+  
+  saveRDS(vol_stp, file = paste0(processed_data_dir, 'vol_stp.RDS'))
+  
+} else {
+  
+  print('File vol_stp.RDS already exists.')
+  
+}
