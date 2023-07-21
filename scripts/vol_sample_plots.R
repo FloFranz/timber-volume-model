@@ -216,3 +216,14 @@ if (!file.exists(paste0(processed_data_dir, 'vol_stp.RDS'))) {
   print('File vol_stp.RDS already exists.')
   
 }
+
+if (!file.exists(paste0(processed_data_dir, 'vol_stp.txt'))) {
+  
+  write.table(vol_stp, file = paste0(processed_data_dir, 'vol_stp.txt'), 
+              sep = ';', row.names = F)
+  
+} else {
+  
+  print('File vol_stp.txt already exists.')
+  
+}
