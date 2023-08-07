@@ -78,11 +78,12 @@ ndsm_pc_projected <- lidR::filter_poi(ndsm_pc_projected, Z >= 0)
 #
 # height metrics: mean, standard deviation, minimum, maximum,
 # percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
-#                    60th, 70th, 75th, 80th, 90th, 95th, 99th),
-# skewness kurtosis, coefficient of variation
+#                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
+# variability metrics: skewness kurtosis, coefficient of variation
 # (all three as conventional moments and as L-moments),
-# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001
-# for the rest, see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
+# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
+# canopy cover metrics: percentage of points above 3m and above mean height
+# --> see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
 calc_metrics <- function(z) {
   
   probs <- c(0.01, 0.05, 0.1, 0.2, 0.25,
@@ -103,7 +104,9 @@ calc_metrics <- function(z) {
        zskew_lmom = lmom::samlmu(z)[3],
        zkurt_lmom = lmom::samlmu(z)[4],
        zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
-       zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))))
+       zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))),
+       pzabove3 = (sum(z > 3, na.rm = T) / length(z)) * 100,
+       pzabovezmean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100)
   
 }
 

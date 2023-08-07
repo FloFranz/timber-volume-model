@@ -168,11 +168,12 @@ if (!file.exists(paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))) {
 #
 # height metrics: mean, standard deviation, minimum, maximum,
 # percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
-#                    60th, 70th, 75th, 80th, 90th, 95th, 99th),
-# skewness kurtosis, coefficient of variation
+#                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
+# variability metrics: skewness kurtosis, coefficient of variation
 # (all three as conventional moments and as L-moments),
-# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001
-# for the rest, see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
+# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
+# canopy cover metrics: percentage of pixels above 3m and above mean height
+# --> see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
 plot_metrics <- sapply(extracted_val_df, function(z)
   c(mean = mean(z, na.rm = T),
     sd   = sd(z, na.rm = T),
@@ -189,7 +190,9 @@ plot_metrics <- sapply(extracted_val_df, function(z)
     lmom_skew = lmom::samlmu(z)[3],
     lmom_kurt = lmom::samlmu(z)[4],
     lmom_cv = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
-    crr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T)))))
+    crr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))),
+    pabove3 = (sum(z > 3, na.rm = T) / length(z)) * 100,
+    pabovemean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100))
 
 # transpose the result for a more convenient format
 plot_metrics_transposed <- t(plot_metrics)
@@ -197,7 +200,7 @@ plot_metrics_transposed <- t(plot_metrics)
 # add volumes per sample plot
 plot_metrics_transposed <- cbind(plot_metrics_transposed, bi_plots_cropped_buf$vol_ha)
 plot_metrics_transposed <- as.data.frame(plot_metrics_transposed)
-names(plot_metrics_transposed)[27] <- 'vol_ha'
+names(plot_metrics_transposed)[29] <- 'vol_ha'
 head(plot_metrics_transposed)
 
 # save data frame with the plots and calculated metrics
