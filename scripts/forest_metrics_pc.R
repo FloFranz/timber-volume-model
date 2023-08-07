@@ -103,7 +103,7 @@ calc_metrics <- function(z) {
        zskew_lmom = lmom::samlmu(z)[3],
        zkurt_lmom = lmom::samlmu(z)[4],
        zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
-       zcorr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))))
+       zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))))
   
 }
 

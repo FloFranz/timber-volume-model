@@ -22,9 +22,6 @@ source('src/setup.R', local = TRUE)
 plot_metrics_sm <- readRDS(paste0(processed_data_dir, 'plot_metrics_sm.RDS'))
 plot_metrics_pc <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
 
-# convert plot_metrics_sm to data frame
-plot_metrics_sm <- as.data.frame(plot_metrics_sm)
-
 
  
 # 02 - forest metrics comparison
@@ -352,7 +349,8 @@ legend('topleft', legend = c('point cloud', 'nDSM'),
 # convert plot_metrics_pc to data frame
 # and remove unneeded columns
 plot_metrics_pc <- as.data.frame(plot_metrics_pc)
-plot_metrics_pc <- plot_metrics_pc[, -(c(1:7, ncol(plot_metrics_pc)))]
+plot_metrics_pc <- plot_metrics_pc[, -(c(1:5, ncol(plot_metrics_pc)))]
+plot_metrics_sm <- plot_metrics_sm[, -(ncol(plot_metrics_sm))]
 
 # perform t-tests for the respective metrics
 # to determine possible significant differences
