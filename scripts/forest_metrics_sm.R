@@ -149,13 +149,13 @@ extracted_val_df <- extracted_val_df[, -id_columns_to_remove]
 head(extracted_val_df)
 
 # save data frame with the extracted values within the sample plots
-if (!file.exists(paste0(processed_data_dir, 'extr_val_plots_nDSM_new.RDS'))) {
+if (!file.exists(paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))) {
   
-  saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots_nDSM_new.RDS'))
+  saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))
   
 } else {
   
-  print('File extr_val_plots_nDSM_new.RDS already exists.')
+  print('File extr_val_plots_nDSM.RDS already exists.')
   
 }
 
@@ -201,18 +201,18 @@ names(plot_metrics_transposed)[27] <- 'vol_ha'
 head(plot_metrics_transposed)
 
 # save data frame with the plots and calculated metrics
-if (!file.exists(paste0(processed_data_dir, 'plot_metrics_sm_new.RDS'))) {
+if (!file.exists(paste0(processed_data_dir, 'plot_metrics_sm.RDS'))) {
   
-  saveRDS(plot_metrics_transposed, file = paste0(processed_data_dir, 'plot_metrics_sm_new.RDS'))
+  saveRDS(plot_metrics_transposed, file = paste0(processed_data_dir, 'plot_metrics_sm.RDS'))
   
 } else {
   
-  print('File plot_metrics_sm_new.RDS already exists.')
+  print('File plot_metrics_sm.RDS already exists.')
   
 }
 
 # plot correlogram of the metrics
-corrplot::corrplot(cor(metrics_new), method = 'circle', type= 'full')
+corrplot::corrplot(cor(plot_metrics_transposed), method = 'circle', type= 'full')
 
 #GGally::ggcorr(metrics_new, method = c('everything', 'pearson'))
 
