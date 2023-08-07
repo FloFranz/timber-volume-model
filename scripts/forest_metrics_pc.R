@@ -21,9 +21,6 @@ source('src/setup.R', local = TRUE)
 dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
 ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 
-# input path to terrestrial data
-bi_path <- paste0(raw_data_dir, 'BI/')
-
 
 
 # 02 - data reading
@@ -37,10 +34,9 @@ ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files))
 # quick plot
 lidR::plot(ndsm_pc)
 
-# read BI data
-bi_files <- list.files(bi_path)
-
-bi_plots <- sf::st_read(paste0(bi_path, bi_files[4]))
+# read BI data preprocessed in script vol_sample_plots.R
+# contains timber volume per sample points
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp.gpkg'))
 
 # quick overview
 bi_plots
@@ -51,23 +47,12 @@ str(bi_plots)
 # 03 - data preperation
 #-------------------------------------
 
-# source and apply function for data formatting
-# on the BI data
-source('src/format_data.R', local = TRUE)
-
-bi_plots <- format_data(bi_plots)
-
-# select needed columns
-bi_plots <- bi_plots[,c('key', 'kspnr', 'fa', 'rw', 'hw', 'stj')]
+# convert column vol_ha in bi_plots to numeric
+bi_plots$vol_ha <- as.numeric(bi_plots$vol_ha)
+str(bi_plots)
 
 # filter plots by year (2022)
-bi_plots <- bi_plots[bi_plots$stj == 2022,]
-
-# add column with plot number
-bi_plots$plot <- 1:nrow(bi_plots)
-
-head(bi_plots)
-str(bi_plots)
+bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
 
 # assign CRS to point clouds (ETRS89 / UTM zone 32N)
 # and project it to the CRS of the BI plots 
