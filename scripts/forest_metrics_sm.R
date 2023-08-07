@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# Name:         forest_metrics_sm_new.R
+# Name:         forest_metrics_sm.R
 # Description:  script calculates several metrics in terrestrial
 #               sample plot points based on digital surface models (DSM)
 #               or normalized digital surface models (nDSM), respectively.
@@ -62,7 +62,7 @@ terra::crs(ndsm) <- 'EPSG:25832'
 ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
 
 # get extent of the nDSM and use it
-# to crop the BI plots to the point cloud
+# to crop the BI plots to the nDSM
 ndsm_projected_ext <- terra::ext(ndsm_projected)
 bi_plots_cropped <- sf::st_crop(bi_plots, ndsm_projected_ext)
 head(bi_plots_cropped)
@@ -210,6 +210,11 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_sm_new.RDS'))) {
   print('File plot_metrics_sm_new.RDS already exists.')
   
 }
+
+# plot correlogram of the metrics
+corrplot::corrplot(cor(metrics_new), method = 'circle', type= 'full')
+
+#GGally::ggcorr(metrics_new, method = c('everything', 'pearson'))
 
 
 
