@@ -133,6 +133,10 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
   
 }
 
+# plot correlogram of the metrics
+plot_metrics_df <- as.data.frame(plot_metrics)
+corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, ncol(plot_metrics_df)))]),
+                   method = 'circle', type= 'full')
 
 
 ### simple model test
@@ -144,6 +148,15 @@ abline(m)
 
 plot(plot_metrics$vol_ha, predict(m))
 abline(0,1)
+
+metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
+                                   res = 20, pkg = 'terra')
+
+vol_ha_pred <- terra::predict(metrics_w2w, m)
+
+terra::plot(vol_ha_pred,
+            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
+                                        rev = T)) 
 ###
 
 
