@@ -32,10 +32,11 @@ plot_metrics_pc <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
 # plots of mean, sd, min, max
 #-----------------------------
 
+par_org <- par()
 par(mfrow = c(2,2))
 
 # generate the x-axis tick labels
-tick_labels <- 1:10
+tick_labels <- 1:40
 
 # determine the y-axis limits based on the range of values in all columns
 y_min <- min(c(plot_metrics_pc$zmean, plot_metrics_sm$mean,
@@ -82,14 +83,17 @@ points(tick_labels, plot_metrics_sm$max,
        col = 'red', pch = 20)
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 
+par(par_org)
+
 #-----------------------------
 # plots of percentiles
 #-----------------------------
 
+par_org <- par()
 par(mfrow = c(3,5))
 
 # generate the x-axis tick labels
-tick_labels <- 1:10
+tick_labels <- 1:40
 
 # determine the y-axis limits based on the range of values in all columns
 y_min <- min(c(plot_metrics_pc$zq1, plot_metrics_sm$`1%`,
@@ -246,14 +250,17 @@ points(tick_labels, plot_metrics_sm$`99%`,
        col = 'red', pch = 20)
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 
+par(par_org)
+
 #------------------------------------
 # plots of skewness, kurtosis and cv
 #------------------------------------
 
+par_org <- par()
 par(mfrow = c(2,3))
 
 # generate the x-axis tick labels
-tick_labels <- 1:10
+tick_labels <- 1:40
 
 # determine the y-axis limits based on the range of values in all columns
 y_min <- min(c(plot_metrics_pc$zskew, plot_metrics_sm$skewness,
@@ -320,19 +327,23 @@ points(tick_labels, plot_metrics_sm$lmom_cv.l_2,
        col = 'red', pch = 20)
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 
+par(par_org)
+
 #--------------
 # plot of crr
 #--------------
 
+par_org <- par()
+
 # generate the x-axis tick labels
-tick_labels <- 1:10
+tick_labels <- 1:40
 
 # determine the y-axis limits based on the range of values in all columns
-y_min <- min(c(plot_metrics_pc$zcorr, plot_metrics_sm$crr))
-y_max <- max(c(plot_metrics_pc$zcorr, plot_metrics_sm$crr))
+y_min <- min(c(plot_metrics_pc$zcrr, plot_metrics_sm$crr))
+y_max <- max(c(plot_metrics_pc$zcrr, plot_metrics_sm$crr))
 
 # plot: crr
-plot(tick_labels, plot_metrics_pc$zcorr,
+plot(tick_labels, plot_metrics_pc$zcrr,
      col = 'blue', pch = 20, xaxt = 'n',
      ylim = c(y_min, y_max))
 points(tick_labels, plot_metrics_sm$crr,
@@ -340,6 +351,44 @@ points(tick_labels, plot_metrics_sm$crr,
 axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
 legend('topleft', legend = c('point cloud', 'nDSM'),
        col = c('blue', 'red'), pch = 20, bty = 'n', x.intersp = 0.3)
+
+par(par_org)
+
+#------------------------------------
+# plot of pzabove3 and above mean
+#------------------------------------
+
+par_org <- par()
+par(mfrow = c(1,2))
+
+# generate the x-axis tick labels
+tick_labels <- 1:40
+
+# determine the y-axis limits based on the range of values in all columns
+y_min <- min(c(plot_metrics_pc$pzabove3, plot_metrics_sm$pabove3,
+               plot_metrics_pc$pzabovezmean, plot_metrics_sm$pabovemean))
+y_max <- max(c(plot_metrics_pc$pzabove3, plot_metrics_sm$pabove3,
+               plot_metrics_pc$pzabovezmean, plot_metrics_sm$pabovemean))
+
+# first plot: pzabove3
+plot(tick_labels, plot_metrics_pc$pzabove3,
+     col = 'blue', pch = 20, xaxt = 'n',
+     ylim = c(y_min, y_max))
+points(tick_labels, plot_metrics_sm$pabove3,
+       col = 'red', pch = 20)
+axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
+legend('topleft', legend = c('point cloud', 'nDSM'),
+       col = c('blue', 'red'), pch = 20, bty = 'n', x.intersp = 0.3)
+
+# second plot: pzabovezmean
+plot(tick_labels, plot_metrics_pc$pzabovezmean,
+     col = 'blue', pch = 20, xaxt = 'n',
+     ylim = c(y_min, y_max))
+points(tick_labels, plot_metrics_sm$pabovemean,
+       col = 'red', pch = 20)
+axis(side = 1, at = tick_labels, labels = plot_metrics_pc$plot, cex.axis = 1)
+
+par(par_org)
 
 
 # 02 - forest metrics comparison
