@@ -1,9 +1,10 @@
 #----------------------------------------------------------------------------------
 # Name:         forest_metrics_sm.R
-# Description:  script calculates several metrics in terrestrial
+# Description:  Script calculates several metrics in terrestrial
 #               sample plot points based on digital surface models (DSM)
 #               or normalized digital surface models (nDSM), respectively.
 #               DSM and nDSM were previously derived from image-based point clouds.
+#               This script is designed to test metrics for one single raster.
 # Author:       Florian Franz
 # Contact:      florian.franz@nw-fva.de
 #----------------------------------------------------------------------------------
@@ -27,10 +28,10 @@ ndsm_path <- paste0(raw_data_dir, 'nDSMs/')
 # 02 - data reading
 #-------------------------------------
 
-# read nDSM raster files
+# read nDSM raster file
 ndsm_files <- list.files(ndsm_path)
-
-ndsm <- terra::rast(paste0(ndsm_path, ndsm_files))
+ndsm <- terra::rast(paste0(ndsm_path, ndsm_files[1]))
+ndsm
 
 # quick plot
 terra::plot(ndsm)
@@ -45,7 +46,7 @@ str(bi_plots)
 
 
 
-# 03 - data preperation
+# 03 - data preparation
 #-------------------------------------
 
 # convert column vol_ha in bi_plots to numeric
@@ -56,15 +57,20 @@ str(bi_plots)
 bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
 
 # assign CRS to raster nDSM (ETRS89 / UTM zone 32N)
+terra::crs(ndsm) <- 'EPSG:25832'
+
+# reproject BI plots to the CRS of the raster nDSM
+# DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
+bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
+
 # and project it to the CRS of the BI plots 
 # (DHDN / 3-degree Gauss-Kruger zone 3)
-terra::crs(ndsm) <- 'EPSG:25832'
-ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
+# ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
 
 # get extent of the nDSM and use it
 # to crop the BI plots to the nDSM
-ndsm_projected_ext <- terra::ext(ndsm_projected)
-bi_plots_cropped <- sf::st_crop(bi_plots, ndsm_projected_ext)
+ndsm_ext <- terra::ext(ndsm)
+bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_ext)
 head(bi_plots_cropped)
 
 # create buffer of 13 m around the point centroids
@@ -72,12 +78,12 @@ head(bi_plots_cropped)
 bi_plots_cropped_buf <- sf::st_buffer(bi_plots_cropped, dist = 13)
 
 # quick plot
-terra::plot(ndsm_projected)
+terra::plot(ndsm)
 plot(bi_plots_cropped_buf$geom, pch = 16, add = T)
 
 # extract the values from the raster (height values of the nDSM)
 # that are within the buffered points (now circles --> sample plots)
-extracted_val <- terra::extract(ndsm_projected, bi_plots_cropped_buf, raw = T)
+extracted_val <- terra::extract(ndsm, bi_plots_cropped_buf, raw = T)
 
 # convert the resulting matrix to a data frame
 extracted_val_df <- as.data.frame(extracted_val)
@@ -111,7 +117,8 @@ pad_with_na <- function(df, max_rows) {
 }
 
 # apply padding to each data frame in the data frame list
-extracted_val_df_list <- lapply(extracted_val_df_list, pad_with_na, max_rows = max_rows)
+extracted_val_df_list <- lapply(extracted_val_df_list, pad_with_na, 
+                                max_rows = max_rows)
 
 # bind the data frames by columns
 extracted_val_df <- dplyr::bind_cols(extracted_val_df_list)
@@ -148,17 +155,6 @@ extracted_val_df <- extracted_val_df[, -id_columns_to_remove]
 
 head(extracted_val_df)
 
-# save data frame with the extracted values within the sample plots
-if (!file.exists(paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))) {
-  
-  saveRDS(extracted_val_df, file = paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))
-  
-} else {
-  
-  print('File extr_val_plots_nDSM.RDS already exists.')
-  
-}
-
 
 
 # 04 - calculation of metrics
@@ -169,7 +165,7 @@ if (!file.exists(paste0(processed_data_dir, 'extr_val_plots_nDSM.RDS'))) {
 # height metrics: mean, standard deviation, minimum, maximum,
 # percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
 #                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
-# variability metrics: skewness kurtosis, coefficient of variation
+# variability metrics: skewness, kurtosis, coefficient of variation
 # (all three as conventional moments and as L-moments),
 # canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
 # canopy cover metrics: percentage of pixels above 3m and above mean height
@@ -203,21 +199,6 @@ plot_metrics_transposed <- as.data.frame(plot_metrics_transposed)
 names(plot_metrics_transposed)[29] <- 'vol_ha'
 head(plot_metrics_transposed)
 
-# save data frame with the plots and calculated metrics
-if (!file.exists(paste0(processed_data_dir, 'plot_metrics_sm.RDS'))) {
-  
-  saveRDS(plot_metrics_transposed, file = paste0(processed_data_dir, 'plot_metrics_sm.RDS'))
-  
-} else {
-  
-  print('File plot_metrics_sm.RDS already exists.')
-  
-}
-
-# plot correlogram of the metrics
-corrplot::corrplot(cor(plot_metrics_transposed), method = 'circle', type= 'full')
-
-#GGally::ggcorr(metrics_new, method = c('everything', 'pearson'))
 
 
 
