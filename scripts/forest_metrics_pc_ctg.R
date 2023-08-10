@@ -3,7 +3,7 @@
 # Description:  Script calculates several metrics in terrestrial
 #               sample plot points based on preprocessed point clouds
 #               generated via image matching. 
-#               LAScatalog is used to process the point clouds.
+#               LAScatalog is used to process several point clouds.
 # Author:       Florian Franz
 # Contact:      florian.franz@nw-fva.de
 #--------------------------------------------------------------------------
