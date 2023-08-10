@@ -63,10 +63,6 @@ terra::crs(ndsm) <- 'EPSG:25832'
 # DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
 bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 
-# and project it to the CRS of the BI plots 
-# (DHDN / 3-degree Gauss-Kruger zone 3)
-# ndsm_projected <- terra::project(ndsm, 'EPSG:31467')
-
 # get extent of the nDSM and use it
 # to crop the BI plots to the nDSM
 ndsm_ext <- terra::ext(ndsm)
