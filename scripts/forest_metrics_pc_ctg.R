@@ -66,12 +66,12 @@ bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 ndsm_pc_ctg_ext <- lidR::extent(ndsm_pc_ctg)
 bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ctg_ext)
 
+# filter point clouds to ignore noise below 0 m
+lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 0'
+
 # visualize locations of BI plots
 lidR::plot(ndsm_pc_ctg)
 lidR::plot(bi_plots_cropped, add = T, col = 'red')
-
-# filter point clouds to ignore noise below 0 m
-lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 0'
 
 
 
@@ -121,6 +121,17 @@ plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
                                    bi_plots_cropped, radius = 13)
 
 head(plot_metrics)
+
+# save data frame with the plots and calculated metrics
+if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
+  
+  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+  
+} else {
+  
+  print('File plot_metrics_pc.RDS already exists.')
+  
+}
 
 
 
