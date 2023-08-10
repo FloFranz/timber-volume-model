@@ -1,11 +1,12 @@
-#--------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
 # Name:         forest_metrics_pc.R
-# Description:  script calculates several metrics in terrestrial
+# Description:  Script calculates several metrics in terrestrial
 #               sample plot points based on preprocessed point clouds 
 #               generated via image matching.
+#               This script is designed to test metrics for one single point cloud.
 # Author:       Florian Franz
 # Contact:      florian.franz@nw-fva.de
-#--------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
 
 
 
@@ -26,10 +27,10 @@ ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 # 02 - data reading
 #-------------------------------------
 
-# read normalized point clouds
+# read normalized point cloud
 ndsm_pc_files <- list.files(ndsm_pc_path)
-
-ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files))
+ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files[1]))
+ndsm_pc
 
 # quick plot
 lidR::plot(ndsm_pc)
@@ -44,7 +45,7 @@ str(bi_plots)
 
 
 
-# 03 - data preperation
+# 03 - data preparation
 #-------------------------------------
 
 # convert column vol_ha in bi_plots to numeric
@@ -54,19 +55,20 @@ str(bi_plots)
 # filter plots by year (2022)
 bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
 
-# assign CRS to point clouds (ETRS89 / UTM zone 32N)
-# and project it to the CRS of the BI plots 
-# (DHDN / 3-degree Gauss-Kruger zone 3)
+# assign CRS to point cloud (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc) <- 'EPSG:25832'
-ndsm_pc_projected <- sf::st_transform(ndsm_pc, sf::st_crs(31467))
+
+# reproject BI plots to the CRS of the point cloud
+# DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
+bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 
 # get extent of the point cloud and use it
 # to crop the BI plots to the point cloud
-ndsm_pc_projected_ext <- lidR::extent(ndsm_pc_projected)
-bi_plots_cropped <- sf::st_crop(bi_plots, ndsm_pc_projected_ext)
+ndsm_pc_ext <- lidR::extent(ndsm_pc)
+bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ext)
 
 # filter point cloud to ignore noise below 0 m
-ndsm_pc_projected <- lidR::filter_poi(ndsm_pc_projected, Z >= 0)
+ndsm_pc <- lidR::filter_poi(ndsm_pc, Z >= 0)
 
 
 
@@ -79,7 +81,7 @@ ndsm_pc_projected <- lidR::filter_poi(ndsm_pc_projected, Z >= 0)
 # height metrics: mean, standard deviation, minimum, maximum,
 # percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
 #                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
-# variability metrics: skewness kurtosis, coefficient of variation
+# variability metrics: skewness, kurtosis, coefficient of variation
 # (all three as conventional moments and as L-moments),
 # canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
 # canopy cover metrics: percentage of points above 3m and above mean height
@@ -112,19 +114,8 @@ calc_metrics <- function(z) {
 
 # calculate the predefined metrics for each plot (radius = 13 m) 
 # within the normalized point cloud
-plot_metrics <- lidR::plot_metrics(ndsm_pc_projected, ~calc_metrics(Z),
+plot_metrics <- lidR::plot_metrics(ndsm_pc, ~calc_metrics(Z),
                                    bi_plots_cropped, radius = 13)
-
-# save data frame with the plots and calculated metrics
-if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
-  
-  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
-  
-} else {
-  
-  print('File plot_metrics_pc.RDS already exists.')
-  
-}
 
 
 
