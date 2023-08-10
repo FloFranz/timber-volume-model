@@ -100,7 +100,7 @@ calc_metrics <- function(z) {
   list(zmean = mean(z, na.rm = T), zsd = sd(z, na.rm = T),
        zmin = min(z, na.rm = T), zmax = max(z, na.rm = T),
        zq1 = zq[1], zq5 = zq[2], zq10 = zq[3], zq20 = zq[4],
-       zq25 = zq[5], zq30 = zq[6], z40 = zq[7], zq50 = zq[8],
+       zq25 = zq[5], zq30 = zq[6], zq40 = zq[7], zq50 = zq[8],
        zq60 = zq[9], zq70 = zq[10], zq75 = zq[11], zq80 = zq[12],
        zq90 = zq[13], zq95 = zq[14], zq99 = zq[15],
        zskew = moments::skewness(z, na.rm = T),
