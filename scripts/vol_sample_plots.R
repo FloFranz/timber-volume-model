@@ -16,27 +16,28 @@ source('src/setup.R', local = TRUE)
 
 # 01 - set file paths and read data
 #-------------------------------------
-# Christoph: nach key abfiltern #
+
 # input path to terrestrial data
 bi_path <- paste0(raw_data_dir, 'BI/')
 
 # read BI data
 bi_files <- list.files(bi_path)
 
-bi_points <- read.table(paste0(bi_path, bi_files[9]),
+bi_points <- read.table(paste0(bi_path, 'tblDatPh2_ZE.txt'),
                         header = T, sep = ';')
 
-bi_trees <- read.table(paste0(bi_path, bi_files[1]),
+bi_trees <- read.table(paste0(bi_path, 'tblDatPh2_Vorr_ZE.txt'),
                        header = T, sep = ';')
 
-# nur Solling
-bi_trees=bi_trees[bi_trees$DatOrga_Key=="268-2022-002" | bi_trees$DatOrga_Key=="254-2022-002",]
+# uncomment if only one spefic forestry office is desired (e.g. Solling)
+#bi_trees <- bi_trees[bi_trees$DatOrga_Key=="268-2022-002" | bi_trees$DatOrga_Key=="254-2022-002",]
+
 head(bi_points)
 head(bi_trees)
 
 
 
-# 02 - data preperation
+# 02 - data preparation
 #-------------------------------------
 
 # source and apply function for data formatting
@@ -114,26 +115,19 @@ head(bi_trees)
 #	r = 13 m all trees with BHD >= 30 cm
 # radius must be projected into the plane
 
-
-
 # correct sample circle sizes with slope, calculate N_ha
 # inclination from degrees in rad
 bi_points$hang_rad <- (pi / 180) * bi_points$hang
-bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr", "hang_rad", "rw", "hw")], 
-                         by = c("key", "kspnr")) 
 
-#Neu von Christoph#
-bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr","hang_rad", "rw", "hw")], by = c("key", "kspnr"))
+bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr","hang_rad", "rw", "hw")],
+                         by = c("key", "kspnr"))
 
 
 # r_plane = r_slope * cos(slope_rad)
 bi_points_trees$nha <- ifelse(bi_points_trees$bhd < 30, 10000 / (pi * 6**2 * cos(bi_points_trees$hang_rad)),
                               10000 / (pi * 13**2 * cos(bi_points_trees$hang_rad)))
 
-
-
 # add heights 
-
 
 # heights in m
 bi_points_trees$hoehe <- bi_points_trees$hoehe / 10
@@ -149,7 +143,7 @@ dat <- input_ehk(id = bi_points_trees$id2, bnr = bi_points_trees$id,
                  hoe = bi_points_trees$hoehe, nha = bi_points_trees$nha,
                  bagr = bi_points_trees$bagr)
 
-# bs == 0 (only 8 values) must me removed
+# bs == 0 (only 3 values) must me removed
 dat <- dat[!dat$bs == 0,]
 
 # Einheitshöhenkurve
