@@ -16,7 +16,7 @@ source('src/setup.R', local = TRUE)
 
 # 01 - set file paths and read data
 #-------------------------------------
-
+# Christoph: nach key abfiltern #
 # input path to terrestrial data
 bi_path <- paste0(raw_data_dir, 'BI/')
 
@@ -29,6 +29,8 @@ bi_points <- read.table(paste0(bi_path, bi_files[9]),
 bi_trees <- read.table(paste0(bi_path, bi_files[1]),
                        header = T, sep = ';')
 
+# nur Solling
+bi_trees=bi_trees[bi_trees$DatOrga_Key=="268-2022-002" | bi_trees$DatOrga_Key=="254-2022-002",]
 head(bi_points)
 head(bi_trees)
 
@@ -112,18 +114,26 @@ head(bi_trees)
 #	r = 13 m all trees with BHD >= 30 cm
 # radius must be projected into the plane
 
+
+
 # correct sample circle sizes with slope, calculate N_ha
 # inclination from degrees in rad
 bi_points$hang_rad <- (pi / 180) * bi_points$hang
-bi_points_trees <- merge(bi_trees, bi_points[,c("kspnr","hang_rad", "rw", "hw")], by = "kspnr")
+bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr", "hang_rad", "rw", "hw")], 
+                         by = c("key", "kspnr")) 
+
+#Neu von Christoph#
+##bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr","hang_rad", "rw", "hw")], by = c("key", "kspnr"))
+
 
 # r_plane = r_slope * cos(slope_rad)
 bi_points_trees$nha <- ifelse(bi_points_trees$bhd < 30, 10000 / (pi * 6**2 * cos(bi_points_trees$hang_rad)),
                               10000 / (pi * 13**2 * cos(bi_points_trees$hang_rad)))
 
-head(bi_points_trees)
+
 
 # add heights 
+
 
 # heights in m
 bi_points_trees$hoehe <- bi_points_trees$hoehe / 10
@@ -164,7 +174,8 @@ bi_points_trees$vol <- NA
 
 # recode tree species befor applying treegross
 bi_points_trees$ba1 <- ifelse(bi_points_trees$ba == 561 | bi_points_trees$ba == 526 , 511,
-                       ifelse(bi_points_trees$ba == 716, 711, bi_points_trees$ba))
+                       ifelse(bi_points_trees$ba == 21 , 211,
+                       ifelse(bi_points_trees$ba == 716, 711, bi_points_trees$ba)))
 
 # create empty table
 cop <- bi_points_trees[-(1:dim(bi_points_trees)[1]),]
@@ -184,6 +195,10 @@ for(i in unique(bi_points_trees$ba1)){
   cop <- rbind(cop, bi_points_trees2)
   
 }
+
+
+
+
 
 # copy the table into the original
 # delete the copy and unneeded columns
