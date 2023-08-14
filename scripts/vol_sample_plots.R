@@ -123,7 +123,7 @@ bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr", "hang_rad", "rw"
                          by = c("key", "kspnr")) 
 
 #Neu von Christoph#
-##bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr","hang_rad", "rw", "hw")], by = c("key", "kspnr"))
+bi_points_trees <- merge(bi_trees, bi_points[,c("key", "kspnr","hang_rad", "rw", "hw")], by = c("key", "kspnr"))
 
 
 # r_plane = r_slope * cos(slope_rad)
