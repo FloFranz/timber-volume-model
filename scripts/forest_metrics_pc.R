@@ -67,9 +67,6 @@ bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 ndsm_pc_ext <- lidR::extent(ndsm_pc)
 bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ext)
 
-# filter point cloud to ignore noise below 0 m
-ndsm_pc <- lidR::filter_poi(ndsm_pc, Z >= 0)
-
 
 
 # 04 - calculation of metrics
@@ -114,6 +111,9 @@ calc_metrics <- function(z) {
 
 # calculate the predefined metrics for each plot (radius = 13 m) 
 # within the normalized point cloud
+# 2 m height threshold according to literature
+ndsm_pc <- lidR::filter_poi(ndsm_pc, Z >= 2)
+
 plot_metrics <- lidR::plot_metrics(ndsm_pc, ~calc_metrics(Z),
                                    bi_plots_cropped, radius = 13)
 
