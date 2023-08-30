@@ -67,10 +67,11 @@ ndsm_pc_ctg_ext <- lidR::extent(ndsm_pc_ctg)
 bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ctg_ext)
 
 # visualize locations of BI plots
-lidR::plot(ndsm_pc_ctg)
-lidR::plot(bi_plots_cropped, add = T, col = 'red')
-
-
+lidR::plot(ndsm_pc_ctg, mapview = T, 
+           map.type = 'OpenStreetMap',
+           alpha.regions = 0) +
+  
+  mapview::mapview(bi_plots_cropped, col.regions = 'red', cex = 2)
 
 # 04 - calculation of metrics
 #--------------------------------------------------------
