@@ -19,8 +19,10 @@ source('src/setup.R', local = TRUE)
 #-------------------------------------
 
 # input path to point clouds (normalized and not normalized)
-dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
-ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
+# point clouds were previously extracted from a larger area
+# in script pc_ctg_extraction.R, now represent a forestry office
+#dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
+ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
 
 
 
@@ -36,7 +38,7 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie.gpkg'))
 
 # quick overview
 bi_plots
@@ -47,12 +49,8 @@ str(bi_plots)
 # 03 - data preparation
 #-------------------------------------
 
-# convert column vol_ha in bi_plots to numeric
-bi_plots$vol_ha <- as.numeric(bi_plots$vol_ha)
-str(bi_plots)
-
-# filter plots by year (2022)
-bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
+# filter plots by year (2022) and forestry office (Neuhaus = 268)
+bi_plots <- bi_plots[grep('268-2022-', bi_plots$key),]
 
 # assign CRS to point clouds (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
@@ -72,6 +70,8 @@ lidR::plot(ndsm_pc_ctg, mapview = T,
            alpha.regions = 0) +
   
   mapview::mapview(bi_plots_cropped, col.regions = 'red', cex = 2)
+
+
 
 # 04 - calculation of metrics
 #--------------------------------------------------------
@@ -123,6 +123,9 @@ plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
 
 head(plot_metrics)
 
+# remove row with NAs (one plot is empty)
+plot_metrics <- na.omit(plot_metrics)
+
 # save data frame with the plots and calculated metrics
 if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
   
@@ -144,11 +147,18 @@ corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, ncol(plot_metrics_df)))]),
 m <- stats::lm(vol_ha ~ zmean, data = plot_metrics)
 summary(m)
 
-plot(plot_metrics$zmean, plot_metrics$vol_ha)
-abline(m)
+ggplot(plot_metrics, aes(x=zmean, y=vol_ha)) +
+  geom_point() +
+  geom_smooth(method=lm, color='red', se=F) +
+  theme_bw()
 
-plot(plot_metrics$vol_ha, predict(m))
-abline(0,1)
+ggplot(plot_metrics, aes(x=vol_ha, y=predict(m))) +
+  geom_point() +
+  geom_smooth(method=lm, color='red', se=F) +
+  xlab(expression(paste('observed timber volume [', m^3, ha^-1, ']', sep = ''))) +
+  ylab(expression(paste('predicted timber volume [', m^3, ha^-1, ']', sep = ''))) +
+  ylim(0,750) +
+  theme_bw()
 
 metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
                                    res = 20, pkg = 'terra')
@@ -157,7 +167,16 @@ vol_ha_pred <- terra::predict(metrics_w2w, m)
 
 terra::plot(vol_ha_pred,
             col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
-                                        rev = T)) 
+                                        rev = T))
+
+terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_neuhaus.tif'),
+                   overwrite = T)
+
+par(mfrow = c(1,2))
+terra::plot(metrics_w2w$zmean)
+terra::plot(vol_ha_pred,
+            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
+                                        rev = T))
 ###
 
 
