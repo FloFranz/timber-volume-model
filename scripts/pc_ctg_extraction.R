@@ -34,7 +34,7 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie.gpkg'))
 
 # quick overview
 bi_plots
@@ -44,10 +44,6 @@ str(bi_plots)
 
 # 03 - data preparation
 #-------------------------------------
-
-# convert column vol_ha in bi_plots to numeric
-bi_plots$vol_ha <- as.numeric(bi_plots$vol_ha)
-str(bi_plots)
 
 # filter plots by year (2022) and forestry office (Neuhaus = 268)
 bi_plots_neuhaus <- bi_plots[grep('268-2022-', bi_plots$key),]
@@ -76,6 +72,6 @@ plot(bi_plots_neuhaus$geom, add= T, col = 'red')
 
 # extract the point clouds that are in the
 # area of the desired forestry office
-#lidR::opt_output_files(ndsm_pc_ctg) <- paste0(tempfile(tmpdir = 'Y:/FFranz/nDSM_pc_ctg_neuhaus_new'), '/{XLEFT}_{YBOTTOM}_{ID}')
-lidR::opt_output_files(ndsm_pc_ctg) <- 'Y:/FFranz/nDSM_pc_ctg_neuhaus_new/{XLEFT}_{YBOTTOM}_{ID}'
+dir.create(paste0(processed_data_dir, 'nDSMs_laz_neuhaus'))
+lidR::opt_output_files(ndsm_pc_ctg) <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/{XLEFT}_{YBOTTOM}_{ID}')
 ndsm_pc_ctg_neuhaus <- lidR::clip_roi(ndsm_pc_ctg, ctg_polys_neuhaus)
