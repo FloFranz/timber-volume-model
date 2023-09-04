@@ -116,24 +116,23 @@ calc_metrics <- function(z) {
 # calculate the predefined metrics for each plot (radius = 13 m) 
 # within the normalized point cloud
 # 2 m height threshold according to literature
-lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
-
-plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
-                                   bi_plots_cropped, radius = 13)
-
-head(plot_metrics)
-
-# remove row with NAs (one plot is empty)
-plot_metrics <- na.omit(plot_metrics)
-
 # save data frame with the plots and calculated metrics
+# if the data frame with the metrics already exists, read it
 if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
+  
+  lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
+  
+  plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
+                                     bi_plots_cropped, radius = 13)
+  
+  # remove row with NAs (one plot is empty)
+  plot_metrics <- na.omit(plot_metrics)
   
   saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
   
 } else {
   
-  print('File plot_metrics_pc.RDS already exists.')
+  plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
   
 }
 
@@ -160,17 +159,30 @@ ggplot(plot_metrics, aes(x=vol_ha, y=predict(m))) +
   ylim(0,750) +
   theme_bw()
 
-metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
-                                   res = 20, pkg = 'terra')
-
-vol_ha_pred <- terra::predict(metrics_w2w, m)
+if (!file.exists(paste0(output_dir, 'metrics_w2w_neuhaus.tif')) |
+    (!file.exists(paste0(output_dir, 'vol_ha_pred_neuhaus.tif')))) {
+  
+  metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
+                                     res = 23, pkg = 'terra')
+  
+  vol_ha_pred <- terra::predict(metrics_w2w, m)
+  
+  terra::writeRaster(metrics_w2w, paste0(output_dir, 'metrics_w2w_neuhaus.tif'),
+                     overwrite = T)
+  
+  terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_neuhaus.tif'),
+                     overwrite = T)
+  
+} else {
+  
+  metrics_w2w <- terra::rast(paste0(output_dir, 'metrics_w2w_neuhaus.tif'))
+  vol_ha_pred <- terra::rast(paste0(output_dir, 'vol_ha_pred_neuhaus.tif'))
+  
+}
 
 terra::plot(vol_ha_pred,
             col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
                                         rev = T))
-
-terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_neuhaus.tif'),
-                   overwrite = T)
 
 par(mfrow = c(1,2))
 terra::plot(metrics_w2w$zmean)
