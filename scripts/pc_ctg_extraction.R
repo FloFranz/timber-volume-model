@@ -20,6 +20,9 @@ source('src/setup.R', local = TRUE)
 # input path to normalized point clouds
 ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 
+# input path to administrative data
+orga_path <- paste0(raw_data_dir, 'orga/')
+
 
 
 # 02 - data reading
@@ -34,11 +37,16 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie_GR_092023.gpkg'))
 
 # quick overview
 bi_plots
 str(bi_plots)
+
+# read administrative forestry data of Lower Saxony
+nlf_org <- sf::st_read(paste0(orga_path, 'NLF_Org_2022.shp'))
+nlf_org
+str(nlf_org)
 
 
 
@@ -47,6 +55,10 @@ str(bi_plots)
 
 # filter plots by year (2022) and forestry office (Neuhaus = 268)
 bi_plots_neuhaus <- bi_plots[grep('268-2022-', bi_plots$key),]
+
+# filter administrative forestry data
+# by forestry office 'Neuhaus' (268) 
+fa_neuhaus <- nlf_org[nlf_org$FORSTAMT == 268,]
 
 # assign CRS to point clouds (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
@@ -57,18 +69,20 @@ bi_plots_neuhaus <- sf::st_transform(bi_plots_neuhaus, sf::st_crs(25832))
 
 # visualize locations of BI plots
 lidR::plot(ndsm_pc_ctg)
-lidR::plot(bi_plots_neuhaus, add = T, col = 'red')
+terra::plot(bi_plots_neuhaus$geom, col = 'red', add = T)
+terra::plot(fa_neuhaus$geometry, alpha = 0, lwd = 2, add = T)
 
 # get polygons (squares) of point clouds in the catalog
 # that are in the area of the desired forestry office
 ctg_polys_neuhaus <- sf::st_crop(ndsm_pc_ctg@data[["geometry"]],
-                                 bi_plots_neuhaus)
+                                 fa_neuhaus)
 
 ctg_polys_neuhaus <- sf::st_sf(ctg_polys_neuhaus)
 
 # quick overview
-plot(ctg_polys_neuhaus)
-plot(bi_plots_neuhaus$geom, add= T, col = 'red')
+terra::plot(ctg_polys_neuhaus)
+terra::plot(bi_plots_neuhaus$geom, add= T, col = 'red')
+terra::plot(fa_neuhaus$geometry, alpha = 0, lwd = 2, add = T)
 
 # extract the point clouds that are in the
 # area of the desired forestry office
