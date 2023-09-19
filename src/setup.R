@@ -66,6 +66,17 @@ if (!file.exists(paste('Rmd'))) {
   
 }
 
+# create directory called 'docs'
+if (!file.exists(paste('docs'))) {
+  
+  dir.create('docs')
+  
+} else {
+  
+  invisible()
+  
+}
+
 # create directory called 'scripts'
 if (!file.exists(paste('scripts'))) {
   
