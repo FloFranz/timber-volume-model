@@ -6,20 +6,60 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(echo = F, message = F)
 ```
 
 This document is used to create figures as part of the wall-to-wall modeling of the growing stock.
 
-```{r setup script, message=FALSE, warning=FALSE}
+```{r setup script, warning=FALSE, }
 source('src/setup.R', local = TRUE)
 ```
 
-
 ```{r set file paths}
-# input path to point clouds (normalized and not normalized)
-# point clouds were previously extracted from a larger area
-# in script pc_ctg_extraction.R, now represent a forestry office
-#dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
 ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
+orga_path <- paste0(raw_data_dir, 'orga/')
 ```
+
+```{r data reading, results='hide'}
+ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie_GR_092023.gpkg'))
+nlf_org <- sf::st_read(paste0(orga_path, 'NLF_Org_2022.shp'))
+foa_abt <- sf::st_read(paste0(orga_path, 'foa-bb_namen_abt-uabt-ufl.shp'))
+```
+
+```{r data preparation}
+# filter plots by year (2022) and forestry office (Neuhaus = 268)
+bi_plots <- bi_plots[grep('268-2022-', bi_plots$key),]
+
+# assign CRS to point clouds (ETRS89 / UTM zone 32N)
+lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
+
+# reproject BI plots to the CRS of the point clouds
+# DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
+bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
+
+# filter administrative forestry data
+# by forestry office 'Neuhaus' (268) 
+fa_neuhaus <- nlf_org[nlf_org$FORSTAMT == 268,]
+```
+
+### Overview of the forestry office "Neuhaus"
+
+The forestry office "Neuhaus" is located in the Solling, a low mountain range in southwestern Lower Saxony (Germany). Nearly 2000 sample plots (red points) are within the forestry office.
+
+```{r plot overview of forestry office}
+mapview::mapview(fa_neuhaus, map.type = c('OpenTopoMap', 'Esri.WorldImagery'),
+                 alpha.regions = 0, lwd = 2, legend = F) +
+mapview::mapview(bi_plots_projected, col.regions = 'red', cex = 2, legend = F)
+```
+
+
+
+
+
+
+
+
+
+
+
