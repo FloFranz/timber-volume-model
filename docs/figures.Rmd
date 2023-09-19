@@ -1,0 +1,25 @@
+---
+title: "Wall-to-wall modeling of the growing stock - figures"
+author: "Florian Franz"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+This document is used to create figures as part of the wall-to-wall modeling of the growing stock.
+
+```{r setup script, message=FALSE, warning=FALSE}
+source('src/setup.R', local = TRUE)
+```
+
+
+```{r set file paths}
+# input path to point clouds (normalized and not normalized)
+# point clouds were previously extracted from a larger area
+# in script pc_ctg_extraction.R, now represent a forestry office
+#dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
+ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
+```
