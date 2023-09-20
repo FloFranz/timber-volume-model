@@ -24,6 +24,9 @@ source('src/setup.R', local = TRUE)
 #dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
 ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
 
+# input path to administrative data
+orga_path <- paste0(raw_data_dir, 'orga/')
+
 
 
 # 02 - data reading
@@ -38,11 +41,16 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie_GR_092023.gpkg'))
 
 # quick overview
 bi_plots
 str(bi_plots)
+
+# read administrative forestry data of Lower Saxony
+nlf_org <- sf::st_read(paste0(orga_path, 'NLF_Org_2022.shp'))
+nlf_org
+str(nlf_org)
 
 
 
@@ -59,17 +67,17 @@ lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
 # DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
 bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 
-# get extent of the point cloud catalog and use it
-# to crop the BI plots to the point clouds
-ndsm_pc_ctg_ext <- lidR::extent(ndsm_pc_ctg)
-bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ctg_ext)
+# filter administrative forestry data
+# by forestry office 'Neuhaus' (268) 
+fa_neuhaus <- nlf_org[nlf_org$FORSTAMT == 268,]
 
 # visualize locations of BI plots
 lidR::plot(ndsm_pc_ctg, mapview = T, 
            map.type = 'OpenStreetMap',
            alpha.regions = 0) +
   
-  mapview::mapview(bi_plots_cropped, col.regions = 'red', cex = 2)
+  mapview::mapview(bi_plots_projected, col.regions = 'red', cex = 2) +
+  mapview::mapview(fa_neuhaus, alpha.regions = 0, lwd = 2)
 
 
 
@@ -123,7 +131,7 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
   lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
   
   plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
-                                     bi_plots_cropped, radius = 13)
+                                     bi_plots_projected, radius = 13)
   
   # remove row with NAs (one plot is empty)
   plot_metrics <- na.omit(plot_metrics)
@@ -140,56 +148,6 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
 plot_metrics_df <- as.data.frame(plot_metrics)
 corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, ncol(plot_metrics_df)))]),
                    method = 'circle', type= 'full')
-
-
-### simple model test
-m <- stats::lm(vol_ha ~ zmean, data = plot_metrics)
-summary(m)
-
-ggplot(plot_metrics, aes(x=zmean, y=vol_ha)) +
-  geom_point() +
-  geom_smooth(method=lm, color='red', se=F) +
-  theme_bw()
-
-ggplot(plot_metrics, aes(x=vol_ha, y=predict(m))) +
-  geom_point() +
-  geom_smooth(method=lm, color='red', se=F) +
-  xlab(expression(paste('observed timber volume [', m^3, ha^-1, ']', sep = ''))) +
-  ylab(expression(paste('predicted timber volume [', m^3, ha^-1, ']', sep = ''))) +
-  ylim(0,750) +
-  theme_bw()
-
-if (!file.exists(paste0(output_dir, 'metrics_w2w_neuhaus.tif')) |
-    (!file.exists(paste0(output_dir, 'vol_ha_pred_neuhaus.tif')))) {
-  
-  metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
-                                     res = 23, pkg = 'terra')
-  
-  vol_ha_pred <- terra::predict(metrics_w2w, m)
-  
-  terra::writeRaster(metrics_w2w, paste0(output_dir, 'metrics_w2w_neuhaus.tif'),
-                     overwrite = T)
-  
-  terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_neuhaus.tif'),
-                     overwrite = T)
-  
-} else {
-  
-  metrics_w2w <- terra::rast(paste0(output_dir, 'metrics_w2w_neuhaus.tif'))
-  vol_ha_pred <- terra::rast(paste0(output_dir, 'vol_ha_pred_neuhaus.tif'))
-  
-}
-
-terra::plot(vol_ha_pred,
-            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
-                                        rev = T))
-
-par(mfrow = c(1,2))
-terra::plot(metrics_w2w$zmean)
-terra::plot(vol_ha_pred,
-            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
-                                        rev = T))
-###
 
 
 
