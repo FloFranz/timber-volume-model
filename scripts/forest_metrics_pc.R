@@ -29,7 +29,7 @@ ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 
 # read normalized point cloud
 ndsm_pc_files <- list.files(ndsm_pc_path)
-ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files[1]))
+ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files[325]))
 ndsm_pc
 
 # quick plot
