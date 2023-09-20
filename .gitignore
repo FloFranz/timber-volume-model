@@ -47,3 +47,6 @@ rsconnect/
 
 # data directory
 data/
+
+# image directory
+docs/images/
