@@ -48,5 +48,8 @@ rsconnect/
 # data directory
 data/
 
+# output directory
+output/
+
 # image directory
 docs/images/
