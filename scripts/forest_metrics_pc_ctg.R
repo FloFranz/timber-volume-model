@@ -41,7 +41,7 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie_GR_092023.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_092023.gpkg'))
 
 # quick overview
 bi_plots
@@ -133,7 +133,7 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
   plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z),
                                      bi_plots_projected, radius = 13)
   
-  # remove row with NAs (one plot is empty)
+  # remove rows with NA (two plots are empty)
   plot_metrics <- na.omit(plot_metrics)
   
   saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
@@ -146,7 +146,7 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
 
 # plot correlogram of the metrics
 plot_metrics_df <- as.data.frame(plot_metrics)
-corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, ncol(plot_metrics_df)))]),
+corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, 6, ncol(plot_metrics_df)))]),
                    method = 'circle', type= 'full')
 
 
