@@ -11,7 +11,7 @@
 
 
 # source setup script
-source('src/setup.R', local = TRUE)
+source('src/setup.R', local = T)
 
 
 
@@ -69,45 +69,8 @@ bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ext)
 # 04 - calculation of metrics
 #--------------------------------------------------------
 
-# create function that calculates several metrics
-# --> potential explanatory variables for a timber volume model
-#
-# height metrics: mean, standard deviation, minimum, maximum,
-# percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
-#                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
-# variability metrics: skewness, kurtosis, coefficient of variation
-# (all three as conventional moments and as L-moments),
-# canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
-# canopy cover metrics: percentage of points above 3m and above mean height
-# spectral metrics: Normalized Difference Vegetation Index (NDVI)
-#
-# --> see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
-calc_metrics <- function(z, r, nir) {
-  
-  probs <- c(0.01, 0.05, 0.1, 0.2, 0.25,
-             0.3, 0.4, 0.5, 0.6, 0.7,
-             0.75, 0.8, 0.9, 0.95, 0.99)
-  
-  zq <- stats::quantile(z, probs, na.rm = T)
-  
-  list(zmean = mean(z, na.rm = T), zsd = sd(z, na.rm = T),
-       zmin = min(z, na.rm = T), zmax = max(z, na.rm = T),
-       zq1 = zq[1], zq5 = zq[2], zq10 = zq[3], zq20 = zq[4],
-       zq25 = zq[5], zq30 = zq[6], z40 = zq[7], zq50 = zq[8],
-       zq60 = zq[9], zq70 = zq[10], zq75 = zq[11], zq80 = zq[12],
-       zq90 = zq[13], zq95 = zq[14], zq99 = zq[15],
-       zskew = moments::skewness(z, na.rm = T),
-       zkurt = moments::kurtosis(z, na.rm = T),
-       zcv = sd(z, na.rm = T) / mean(z, na.rm = T) * 100,
-       zskew_lmom = lmom::samlmu(z)[3],
-       zkurt_lmom = lmom::samlmu(z)[4],
-       zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
-       zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))),
-       pzabove3 = (sum(z > 3, na.rm = T) / length(z)) * 100,
-       pzabovezmean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100,
-       ndvi = mean((nir - r) / (nir + r), na.rm = T))
-  
-}
+# source function for metrics calculation
+source('src/calc_metrics.R', local = T)
 
 # calculate the predefined metrics for each plot (radius = 13 m) 
 # within the normalized point cloud
