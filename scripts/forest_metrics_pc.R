@@ -29,7 +29,7 @@ ndsm_pc_path <- paste0(raw_data_dir, 'nDSMs_laz/')
 
 # read normalized point cloud
 ndsm_pc_files <- list.files(ndsm_pc_path)
-ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files[325]))
+ndsm_pc <- lidR::readLAS(paste0(ndsm_pc_path, ndsm_pc_files[594]))
 ndsm_pc
 
 # quick plot
@@ -37,7 +37,7 @@ lidR::plot(ndsm_pc)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_092023.gpkg'))
 
 # quick overview
 bi_plots
@@ -48,12 +48,9 @@ str(bi_plots)
 # 03 - data preparation
 #-------------------------------------
 
-# convert column vol_ha in bi_plots to numeric
-bi_plots$vol_ha <- as.numeric(bi_plots$vol_ha)
-str(bi_plots)
-
-# filter plots by year (2022)
-bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
+# filter plots by year (2022) and forestry office
+# (Neuhaus = 268, Dassel = 254)
+bi_plots <- bi_plots[grep('254-2022-', bi_plots$key),]
 
 # assign CRS to point cloud (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc) <- 'EPSG:25832'
@@ -82,8 +79,10 @@ bi_plots_cropped <- sf::st_crop(bi_plots_projected, ndsm_pc_ext)
 # (all three as conventional moments and as L-moments),
 # canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
 # canopy cover metrics: percentage of points above 3m and above mean height
+# spectral metrics: Normalized Difference Vegetation Index (NDVI)
+#
 # --> see different studies, e.g. https://doi.org/10.1139/cjfr-2014-0297
-calc_metrics <- function(z) {
+calc_metrics <- function(z, r, nir) {
   
   probs <- c(0.01, 0.05, 0.1, 0.2, 0.25,
              0.3, 0.4, 0.5, 0.6, 0.7,
@@ -105,7 +104,8 @@ calc_metrics <- function(z) {
        zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
        zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))),
        pzabove3 = (sum(z > 3, na.rm = T) / length(z)) * 100,
-       pzabovezmean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100)
+       pzabovezmean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100,
+       ndvi = mean((nir - r) / (nir + r), na.rm = T))
   
 }
 
@@ -114,9 +114,8 @@ calc_metrics <- function(z) {
 # 2 m height threshold according to literature
 ndsm_pc <- lidR::filter_poi(ndsm_pc, Z >= 2)
 
-plot_metrics <- lidR::plot_metrics(ndsm_pc, ~calc_metrics(Z),
+plot_metrics <- lidR::plot_metrics(ndsm_pc, ~calc_metrics(Z, R, B),
                                    bi_plots_cropped, radius = 13)
-
 
 
 
