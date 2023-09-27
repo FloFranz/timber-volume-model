@@ -34,7 +34,7 @@ dop_path <- paste0(raw_data_dir, 'DOP/')
 
 # read nDSM raster file
 ndsm_files <- list.files(ndsm_path)
-ndsm <- terra::rast(paste0(ndsm_path, ndsm_files[1]))
+ndsm <- terra::rast(paste0(ndsm_path, ndsm_files[593]))
 ndsm
 
 # quick plot
@@ -42,11 +42,12 @@ terra::plot(ndsm)
 
 # read DOP
 dop_solling <- terra::rast(paste0(dop_path, 'dop_solling.tif'))
+dop_solling <- terra::rast(r'{Y:\FFranz\von_Berrit\mosaic_gesamt_2023_0717_gdal\dop_solling.tif}')
 dop_solling
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp.gpkg'))
+bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_092023.gpkg'))
 
 # quick overview
 bi_plots
@@ -57,12 +58,9 @@ str(bi_plots)
 # 03 - data preparation
 #-------------------------------------
 
-# convert column vol_ha in bi_plots to numeric
-bi_plots$vol_ha <- as.numeric(bi_plots$vol_ha)
-str(bi_plots)
-
-# filter plots by year (2022)
-bi_plots <- bi_plots[grep('-2022-', bi_plots$key),]
+# filter plots by year (2022) and forestry office 
+# (Neuhaus = 268, Dassel = 254)
+bi_plots <- bi_plots[grep('254-2022-', bi_plots$key),]
 
 # assign CRS to raster nDSM (ETRS89 / UTM zone 32N)
 terra::crs(ndsm) <- 'EPSG:25832'
@@ -180,7 +178,7 @@ head(extracted_val_ndsm)
 #----
 
 # number of plot names
-num_plot_names <- 10
+num_plot_names <- num_pairs
 
 # number of value columns corresponding to each plot name
 # --> R-G-B-I
@@ -197,7 +195,7 @@ plot_names <- rep(unique(bi_plots_cropped_buf$kspnr),
 # create vector of indices for the value columns to keep
 val_col_indices <- c(seq(2,5), seq(7,10), seq(12,15), seq(17,20), 
                      seq(22,25), seq(27,30), seq(32,35), seq(37,40),
-                     seq(42,45), seq(47,50))
+                     seq(42,45), seq(47,50), seq(52,55))
 
 # subset the data frame to keep only the value columns
 extracted_val_dop <- extracted_val_dop[, val_col_indices]
@@ -297,12 +295,6 @@ plot_metrics_transposed <- cbind(plot_metrics_transposed, bi_plots_cropped_buf$v
 plot_metrics_transposed <- as.data.frame(plot_metrics_transposed)
 names(plot_metrics_transposed)[30] <- 'vol_ha'
 head(plot_metrics_transposed)
-
-
-
-
-
-
 
 
 
