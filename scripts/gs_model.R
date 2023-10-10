@@ -42,7 +42,7 @@ plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
 # 03 - model creation
 #-------------------------------------
 
-# simple ordinary least squares (OLS) linear regression
+### simple ordinary least squares (OLS) linear regression ###
 ols_model <- stats::lm(vol_ha ~ zmean, data = plot_metrics)
 summary(ols_model)
 
@@ -66,8 +66,8 @@ ggplot(plot_metrics, aes(x=vol_ha, y=predict(ols_model))) +
   ylim(0,750) +
   theme_bw()
 
-# generalized linear model (GLM)
-# using gaussian distribution and logarithmic link
+### generalized linear model (GLM) ###
+### using gaussian distribution and logarithmic link ###
 glm_gaus_log <- stats::glm(vol_ha ~ zmean, 
                            family = gaussian(link = 'log'), 
                            data = plot_metrics)
@@ -84,6 +84,64 @@ ggplot(plot_metrics, aes(x = zmean, y = vol_ha)) +
   xlab(expression(paste('mean height [', m, ']', sep = ''))) +
   ylab(expression(paste('growing stock [', m^3, ha^-1, ']', sep = ''))) +
   theme_bw()
+
+### random forest model using 'ranger' ###
+
+# split data into training and testing
+plot_metrics_df <- as.data.frame(plot_metrics)
+rownames(plot_metrics_df) <- 1:nrow(plot_metrics_df)
+
+trainIndex <- caret::createDataPartition(plot_metrics_df$vol_ha,
+                                         p = 0.8, list = F)
+train <- plot_metrics_df[trainIndex,]
+test <- plot_metrics_df[-trainIndex,]
+
+predictors <- train[,7:35]
+response <- train[,'vol_ha']
+
+# initialize leave-location-out cross-validation (LLOCV)
+#indices <- CAST::CreateSpacetimeFolds(train,
+#                                      spacevar = 'kspnr',
+#                                      k = 10)
+
+# control the parameters of the train function
+#ctrl <- caret::trainControl(method = 'cv',
+#                            index = indices$index,
+#                            savePredictions = T,
+#                            allowParallel = T,
+#                            verboseIter = T)
+
+ctrl <- caret::trainControl(method = 'cv',
+                            number = 10,
+                            savePredictions = T,
+                            allowParallel = T)
+
+# create grid for tuning features
+tgrid <- expand.grid(mtry = 2:10,
+                     splitrule = 'variance',
+                     min.node.size = c(10,20,30,40,50))
+
+# create parallel cluster to increase computing speed
+n_cores <- parallel::detectCores() - 2 
+cl <- parallel::makeCluster(n_cores)
+doParallel::registerDoParallel(cl)
+
+# train the model
+set.seed(11)
+model <- caret::train(predictors,
+                      response,
+                      method = 'ranger',
+                      trControl = ctrl,
+                      tuneGrid = tgrid,
+                      num.trees = 500,
+                      importance = 'permutation')
+
+# stop parallel cluster
+parallel::stopCluster(cl)
+
+# save or read the model
+saveRDS(model, paste0(processed_data_dir, 'rf_model.RDS'))
+model <- readRDS(paste0(processed_data_dir, 'rf_model.RDS'))
 
 
 
@@ -118,6 +176,32 @@ if (!file.exists(paste0(output_dir, 'metrics_w2w_neuhaus.tif')) |
   
 }
 
+# prediction with the rf model
+vol_ha_pred_rf <- terra::predict(metrics_w2w, model, na.rm = T)
+
+
+
+# 05 - validation
+#-------------------------------------
+
+# validation of the rf model
+pred_values <- stats::predict(model, test)
+
+val_df <- data.frame(kspnr = dplyr::pull(test, 'kspnr'),
+                     observed = dplyr::pull(test, 'vol_ha'),
+                     predicted = pred_values)
+
+# RMSE
+rmse <- round(sqrt(mean((val_df$predicted - val_df$observed)^2, na.rm = T)), 2)
+
+# R-squared
+ssr <- sum((val_df$predicted - mean(val_df$observed))^2)
+sst <- sum((val_df$observed - mean(val_df$observed))^2)
+rsquared <- 1 - (ssr / sst)
+
+# print the results
+cat("RMSE:", rmse, "\n")
+cat("R-squared:", rsquared, "\n")
 
 
 
