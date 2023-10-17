@@ -23,8 +23,9 @@ if (!file.exists(paste('data')) |
         (!file.exists(paste('data/raw_data/DOP')) |
          (!file.exists(paste('data/raw_data/BI')) |
           (!file.exists(paste('data/raw_data/orga')) |
-           (!file.exists(paste('data/processed_data')) |
-            (!file.exists(paste('data/metadata'))))))))))))) {
+           (!file.exists(paste('data/raw_data/microclimate')) |
+            (!file.exists(paste('data/processed_data')) |
+             (!file.exists(paste('data/metadata')))))))))))))) {
   
   dir.create('data')
   dir.create('data/raw_data')
@@ -142,4 +143,5 @@ load_packages <- function(packages) {
 
 
 load_packages(c('terra', 'raster', 'lidR' , 'sf', 'stats',
-                'moments', 'lmom', 'dplyr', 'ggplot2'))
+                'moments', 'lmom', 'dplyr', 'ggplot2',
+                'caret'))
