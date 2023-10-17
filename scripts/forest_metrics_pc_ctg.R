@@ -100,9 +100,6 @@ if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
   plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z, R, B),
                                      bi_plots_projected, radius = 13)
   
-  # remove rows with NA (two plots are empty)
-  plot_metrics <- na.omit(plot_metrics)
-  
   saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
   
 } else {

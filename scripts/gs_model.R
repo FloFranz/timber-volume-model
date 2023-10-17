@@ -36,6 +36,7 @@ ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
 # based on the normalized point clouds
 # --> see script forest_metrics_pc_ctg.R
 plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+plot_metrics <- na.omit(plot_metrics)
 
 
 
