@@ -4,7 +4,8 @@
 #               at 15 cm above ground) obtained by ForestClim (see publication
 #               Haesen et al. 2023, https://doi.org/10.1111/gcb.16678).
 #               The microclimate data is masked to the desired forestry office.
-#               Subsequently, values within the terrestrial sample plots are extracted.
+#               Subsequently, values within the terrestrial sample plots are extracted
+#               and finally added to the plot metrics calculated from the point clouds.
 # Author:       Florian Franz
 # Contact:      florian.franz@nw-fva.de
 #--------------------------------------------------------------------------------------
@@ -134,9 +135,6 @@ extr_val_microclim_df <- extr_val_microclim_df %>%
   dplyr::left_join(bi_plots_buf %>% dplyr::select(kspnr, ID), by = 'ID') %>%
   dplyr::select(kspnr, value)
 
-# remove NAs
-extr_val_microclim_df <- na.omit(extr_val_microclim_df)
-
 # add unique row ID within each "kspnr" group
 extr_val_microclim_df <- extr_val_microclim_df %>%
   dplyr::group_by(kspnr) %>%
@@ -147,4 +145,41 @@ extr_val_microclim <- extr_val_microclim_df %>%
   tidyr::pivot_wider(id_cols = row_id, names_from = kspnr, values_from = value)
 
 extr_val_microclim$row_id <- NULL
+
+
+
+# 04 - calculating mean per plot
+#--------------------------------------
+
+# calculate mean temperature per sample plot
+mean_temp_plots <- sapply(extr_val_microclim, function(temp)
+  mean = mean(temp, na.rm = T))
+
+# transpose the result for a more convenient format
+mean_temp_plots <- t(mean_temp_plots)
+
+# convert to data frame and adding plot number (kspnr)
+mean_temp_df <- data.frame(kspnr = as.integer(colnames(mean_temp_plots)),
+                           mean_temp = t(mean_temp_plots))
+
+# read plot metrics data frame derived from the point clouds
+# --> see script forest_metrics_pc_ctg.R
+plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+
+# add the calculated mean temperatures
+plot_metrics <- cbind(plot_metrics, mean_temp_df$mean_temp)
+colnames(plot_metrics)[36] <- 'mean_temp_15cm'
+
+# remove NAs (6 temperatures, 2 pc metrics, = 8 plots)
+plot_metrics <- na.omit(plot_metrics)
+
+# save data frame
+saveRDS(plot_metrics, paste0(processed_data_dir, 'plot_metrics_pc_new.RDS'))
+
+
+
+
+
+
+
 
