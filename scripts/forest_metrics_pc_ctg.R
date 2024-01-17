@@ -22,7 +22,7 @@ source('src/setup.R', local = T)
 # point clouds were previously extracted from a larger area
 # in script pc_ctg_extraction.R, now represent a forestry office
 #dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
-ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
+ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_solling/')
 
 # input path to administrative data
 orga_path <- paste0(raw_data_dir, 'orga/')
@@ -57,8 +57,8 @@ str(nlf_org)
 # 03 - data preparation
 #-------------------------------------
 
-# filter plots by year (2022) and forestry office (Neuhaus = 268)
-bi_plots <- bi_plots[grep('268-2022-', bi_plots$key),]
+# filter plots by year (2022) and forestry offices (Neuhaus = 268, Dassel = 254)
+bi_plots <- bi_plots[grep('268-2022|254-2022', bi_plots$key),]
 
 # assign CRS to point clouds (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
@@ -68,8 +68,8 @@ lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
 bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
 
 # filter administrative forestry data
-# by forestry office 'Neuhaus' (268) 
-fa_neuhaus <- nlf_org[nlf_org$FORSTAMT == 268,]
+# by forestry offices 'Neuhaus' (268) and 'Dassel' (254) 
+fa_solling <- nlf_org[nlf_org$FORSTAMT == 268 | nlf_org$FORSTAMT == 254,]
 
 # visualize locations of BI plots
 lidR::plot(ndsm_pc_ctg, mapview = T, 
@@ -77,7 +77,7 @@ lidR::plot(ndsm_pc_ctg, mapview = T,
            alpha.regions = 0) +
   
   mapview::mapview(bi_plots_projected, col.regions = 'red', cex = 2) +
-  mapview::mapview(fa_neuhaus, alpha.regions = 0, lwd = 2)
+  mapview::mapview(fa_solling, alpha.regions = 0, lwd = 2)
 
 
 
@@ -93,23 +93,24 @@ source('src/calc_metrics.R', local = T)
 # 2 m height threshold according to literature
 # save data frame with the plots and calculated metrics
 # if the data frame with the metrics already exists, read it
-if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))) {
+if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) {
   
   lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
   
   plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z, R, B),
                                      bi_plots_projected, radius = 13)
   
-  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
   
 } else {
   
-  plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+  plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
   
 }
 
 # plot correlogram of the metrics
 plot_metrics_df <- as.data.frame(plot_metrics)
+plot_metrics_df <- na.omit(plot_metrics_df)
 corrplot::corrplot(cor(plot_metrics_df[, -(c(1:4, 6, ncol(plot_metrics_df)))]),
                    method = 'circle', type= 'full')
 
