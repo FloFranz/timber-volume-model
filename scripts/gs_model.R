@@ -3,8 +3,8 @@
 # Description:  Script models the growing stock (GS) based on previously
 #               derived metrics in terrestrial sample plots.
 #               Different model types are created and tested.
-#               Finally, wall-to-wall predictions of the GS for an entire
-#               forestry office is calculated.
+#               Finally, wall-to-wall predictions of the GS for two entire
+#               forestry offices are calculated.
 # Author:       Florian Franz
 # Contact:      florian.franz@nw-fva.de
 #--------------------------------------------------------------------------
@@ -23,7 +23,7 @@ source('src/setup.R', local = TRUE)
 # point clouds were previously extracted from a larger area
 # in script pc_ctg_extraction.R, now represent a forestry office
 #dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
-ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
+ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_solling/')
 
 
 # 02 - data reading
@@ -35,7 +35,7 @@ ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
 # read data frame with plots and calculated metrics
 # based on the normalized point clouds
 # --> see script forest_metrics_pc_ctg.R
-plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc.RDS'))
+plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
 plot_metrics <- na.omit(plot_metrics)
 
 
@@ -156,24 +156,24 @@ source('src/calc_metrics.R', local = T)
 # (normalized point clouds in LAScatalog)
 # output resolution of the metrics = 23 m (13 m plot radius = 531 m²)
 # 2. calculate wall-to-wall predictions of GS
-if (!file.exists(paste0(output_dir, 'metrics_w2w_neuhaus.tif')) |
-    (!file.exists(paste0(output_dir, 'vol_ha_pred_neuhaus.tif')))) {
+if (!file.exists(paste0(output_dir, 'metrics_w2w_solling.tif')) |
+    (!file.exists(paste0(output_dir, 'vol_ha_pred_solling.tif')))) {
   
   metrics_w2w <- lidR::pixel_metrics(ndsm_pc_ctg, ~calc_metrics(Z, R, B),
-                                     res = 23, pkg = 'terra')
+                                     res = 20, pkg = 'terra')
   
   vol_ha_pred <- terra::predict(metrics_w2w, ols_model)
   
-  terra::writeRaster(metrics_w2w, paste0(output_dir, 'metrics_w2w_neuhaus.tif'),
+  terra::writeRaster(metrics_w2w, paste0(output_dir, 'metrics_w2w_solling.tif'),
                      overwrite = T)
   
-  terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_neuhaus.tif'),
+  terra::writeRaster(vol_ha_pred, paste0(output_dir, 'vol_ha_pred_solling.tif'),
                      overwrite = T)
   
 } else {
   
-  metrics_w2w <- terra::rast(paste0(output_dir, 'metrics_w2w_neuhaus.tif'))
-  vol_ha_pred <- terra::rast(paste0(output_dir, 'vol_ha_pred_neuhaus.tif'))
+  metrics_w2w <- terra::rast(paste0(output_dir, 'metrics_w2w_solling.tif'))
+  vol_ha_pred <- terra::rast(paste0(output_dir, 'vol_ha_pred_solling.tif'))
   
 }
 
