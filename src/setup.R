@@ -24,8 +24,9 @@ if (!file.exists(paste('data')) |
          (!file.exists(paste('data/raw_data/BI')) |
           (!file.exists(paste('data/raw_data/orga')) |
            (!file.exists(paste('data/raw_data/microclimate')) |
-            (!file.exists(paste('data/processed_data')) |
-             (!file.exists(paste('data/metadata')))))))))))))) {
+            (!file.exists(paste('data/raw_data/tree_species')) |
+             (!file.exists(paste('data/processed_data')) |
+              (!file.exists(paste('data/metadata'))))))))))))))) {
   
   dir.create('data')
   dir.create('data/raw_data')
@@ -36,6 +37,8 @@ if (!file.exists(paste('data')) |
   dir.create('data/raw_data/DOP')
   dir.create('data/raw_data/BI')
   dir.create('data/raw_data/orga')
+  dir.create('data/raw_data/microclimate')
+  dir.create('data/raw_data/tree_species')
   dir.create('data/processed_data')
   dir.create('data/metadata')
   
