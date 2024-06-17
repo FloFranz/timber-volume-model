@@ -17,8 +17,7 @@
 #' height metrics: mean, standard deviation, minimum, maximum,
 #' percentile values (1st, 5th, 10th, 20th, 25th, 30th, 40th, 50th,
 #'                    60th, 70th, 75th, 80th, 90th, 95th, 99th);
-#' variability metrics: skewness, kurtosis, coefficient of variation
-#' (all three as conventional moments and as L-moments),
+#' variability metrics: skewness, kurtosis, coefficient of variation;
 #' canopy relief ratio (crr) --> https://doi.org/10.1016/j.foreco.2003.09.001;
 #' canopy cover metrics: percentage of points above 3m and above mean height
 #' spectral metrics: Normalized Difference Vegetation Index (NDVI)
@@ -64,9 +63,6 @@ calc_metrics <- function(z, r, nir) {
        zskew = moments::skewness(z, na.rm = T),
        zkurt = moments::kurtosis(z, na.rm = T),
        zcv = sd(z, na.rm = T) / mean(z, na.rm = T) * 100,
-       zskew_lmom = lmom::samlmu(z)[3],
-       zkurt_lmom = lmom::samlmu(z)[4],
-       zcv_lmom = lmom::samlmu(z, ratios = F)[2] / lmom::samlmu(z, ratios = F)[1],
        zcrr = ((mean(z, na.rm = T) - min(z, na.rm = T)) / (max(z, na.rm = T) - min(z, na.rm = T))),
        pzabove3 = (sum(z > 3, na.rm = T) / length(z)) * 100,
        pzabovezmean = (sum(z > mean(z, na.rm = T), na.rm = T) / length(z)) * 100,
