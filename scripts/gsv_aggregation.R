@@ -37,6 +37,7 @@ terra::plot(reviere$geometry, add = T, border = 'white')
 # 02 - data preparation
 #-------------------------------------
 
+# filter Reviere to those covering the core Solling region
 reviere_solling <- reviere %>%
   dplyr::filter(
     FORSTAMT %in% c(254, 268),
@@ -48,22 +49,23 @@ reviere_solling <- reviere %>%
 
 reviere_solling
 
+wefl_solling <- wefl %>%
+  dplyr::filter(
+    FORSTAMT %in% c(254, 268)
+  )
+
 terra::plot(pred_gsv$PredictionPlusForestClassification_1)
 terra::plot(reviere_solling$geometry, add = T, border = 'white')
 
+terra::plot(pred_gsv$PredictionPlusForestClassification_1)
+terra::plot(wefl_solling$geometry, add = T, border = 'white')
 
 
 # 03 - aggregation of GSV values
 #-------------------------------------
 
 # calculate mean GSV per Revier
-reviere_mean <- exactextractr::exact_extract(
-  pred_gsv$PredictionPlusForestClassification_1,
-  reviere_solling,
-  fun = 'mean'
-)
-
-# Keep only valid values (not NA and not 0)
+# keep only valid values (not NA and not 0)
 reviere_mean <- exactextractr::exact_extract(
   pred_gsv$PredictionPlusForestClassification_1,
   reviere_solling,
@@ -73,13 +75,40 @@ reviere_mean <- exactextractr::exact_extract(
   }
 )
 
+# aggregate WEFL geometries from SE level to UABT level
+# group by organizational hierarchy: FORSTAMT, REVIER, ABTEILUNG, UABT
+wefl_uabt <- wefl_solling %>%
+  dplyr::group_by(FORSTAMT, REVIER, ABTEILUNG, UABT) %>%
+  dplyr::summarise(
+    .groups = 'drop'
+  ) %>%
+  # union geometries for each UABT unit
+  sf::st_union(by_feature = TRUE)
 
-# add results to the sf object
+wefl_uabt
+
+sf::st_write(wefl_uabt, file.path(processed_data_dir, 'wefl_uabt.gpkg'))
+
+# calculate mean GSV per UABT unit
+# keep only valid values (not NA and not 0)
+uabt_mean <- exactextractr::exact_extract(
+  pred_gsv$PredictionPlusForestClassification_1,
+  wefl_uabt,
+  fun = function(values, coverage_fraction) {
+    valid_values <- values[!is.na(values) & values != 0]
+      mean(valid_values)
+  }
+)
+
+# add results to the respective sf objects
 reviere_solling$mean_gsv <- reviere_mean
+wefl_uabt$mean_gsv <- uabt_mean
 reviere_solling
+wefl_uabt
 
-# save layer
+# save layers
 sf::st_write(reviere_solling, file.path(output_dir, 'mean_pred_gsv_reviere.gpkg'))
+sf::st_write(wefl_uabt, file.path(output_dir, 'mean_pred_gsv_uabt.gpkg'))
 
 # calculate the mean GSV per Forstamt
 forstaemter_mean <- reviere_solling %>%
@@ -92,6 +121,8 @@ forstaemter_mean
 # plot GSV for each Revier
 terra::plot(reviere_solling['mean_gsv'])
 
+# plot GSV for each UABT
+terra::plot(wefl_uabt['mean_gsv'])
 
 
 
