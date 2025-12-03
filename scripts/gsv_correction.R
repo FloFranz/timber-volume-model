@@ -74,9 +74,9 @@ terra::plot(
 # prepare gaps for masking
 # APPROACH 1: raster solution
 # resample gap rasters to match the cropped GSV raster resolution and alignment
-pred_gaps_t1_resampled <- terra::resample(pred_gaps_t1, pred_gsv_t1, method = "near")
-pred_gaps_t2_resampled <- terra::resample(pred_gaps_t2, pred_gsv_t2, method = "near")
-pred_gaps_t3_resampled <- terra::resample(pred_gaps_t3, pred_gsv_t3, method = "near")
+pred_gaps_t1_resampled <- terra::resample(pred_gaps_t1, pred_gsv_t1, method = 'near')
+pred_gaps_t2_resampled <- terra::resample(pred_gaps_t2, pred_gsv_t2, method = 'near')
+pred_gaps_t3_resampled <- terra::resample(pred_gaps_t3, pred_gsv_t3, method = 'near')
 
 # APPROACH 2: vector solution
 # vectorize gap rasters to polygons, keep only gap polygons (gaps = 1)
@@ -94,7 +94,7 @@ par(mfrow = c(2,3))
 terra::plot(
   pred_gsv_t1$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 1 - raster gaps"
+  main = 'Tile 1 - raster gaps'
   )
 terra::plot(
   terra::ifel(
@@ -104,7 +104,7 @@ terra::plot(
 terra::plot(
   pred_gsv_t2$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50), 
-  main = "Tile 2 - raster gaps"
+  main = 'Tile 2 - raster gaps'
   )
 terra::plot(
   terra::ifel(
@@ -114,7 +114,7 @@ terra::plot(
 terra::plot(
   pred_gsv_t3$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 3 - raster gaps"
+  main = 'Tile 3 - raster gaps'
   )
 terra::plot(
   terra::ifel(
@@ -126,19 +126,19 @@ terra::plot(
 terra::plot(
   pred_gsv_t1$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50), 
-  main = "Tile 1 - vector gaps"
+  main = 'Tile 1 - vector gaps'
   )
 terra::plot(gaps_poly_t1, col = NA, border = 'white', lwd = 1, add = T)
 terra::plot(
   pred_gsv_t2$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 2 - vector gaps"
+  main = 'Tile 2 - vector gaps'
   )
 terra::plot(gaps_poly_t2, col = NA, border = 'white', lwd = 1, add = T)
 terra::plot(
   pred_gsv_t3$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 3 - vector gaps"
+  main = 'Tile 3 - vector gaps'
   )
 terra::plot(gaps_poly_t3, col = NA, border = 'white', lwd = 1, add = T)
 
@@ -185,20 +185,22 @@ corrected_gsv_vector_t3 <- terra::mask(
 for (i in 1:3) {
   original_pixels <- sum(
     !is.na(terra::values(
-      get(paste0("pred_gsv_t", i))$PredictionPlusForestClassification_1)
+      get(paste0('pred_gsv_t', i))$PredictionPlusForestClassification_1)
       )
     )
   raster_pixels <- sum(
-    !is.na(terra::values(get(paste0("corrected_gsv_raster_t", i)))))
+    !is.na(terra::values(get(paste0('corrected_gsv_raster_t', i)))))
   vector_pixels <- sum(
-    !is.na(terra::values(get(paste0("corrected_gsv_vector_t", i)))))
+    !is.na(terra::values(get(paste0('corrected_gsv_vector_t', i)))))
   
-  cat("Tile", i, "Results:\n")
-  cat("  Original GSV pixels:", original_pixels, "\n")
-  cat("  Raster approach - remaining pixels:", raster_pixels, "\n")
-  cat("  Vector approach - remaining pixels:", vector_pixels, "\n")
-  cat("  Raster approach - % masked:", round((1 - raster_pixels / original_pixels) * 100, 2), "%\n")
-  cat("  Vector approach - % masked:", round((1 - vector_pixels / original_pixels) * 100, 2), "%\n\n")
+  cat('Tile', i, 'Results:\n')
+  cat('  Original GSV pixels:', original_pixels, '\n')
+  cat('  Raster approach - remaining pixels:', raster_pixels, '\n')
+  cat('  Vector approach - remaining pixels:', vector_pixels, '\n')
+  cat('  Raster approach - % masked:', 
+      round((1 - raster_pixels / original_pixels) * 100, 2), '%\n')
+  cat('  Vector approach - % masked:',
+      round((1 - vector_pixels / original_pixels) * 100, 2), '%\n\n')
 }
 
 # visualization: compare raster vs vector approach
@@ -208,34 +210,34 @@ par(mfrow = c(2,3))
 terra::plot(
   corrected_gsv_raster_t1,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 1 - raster approach"
+  main = 'Tile 1 - raster approach'
 )
 terra::plot(
   corrected_gsv_raster_t2,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 2 - raster approach"
+  main = 'Tile 2 - raster approach'
 )
 terra::plot(
   corrected_gsv_raster_t3,
   col = cmocean::cmocean('speed')(50),
-  main = "Tile 3 - raster approach"
+  main = 'Tile 3 - raster approach'
 )
 
 # bottom row: vector gaps removed from GSV
 terra::plot(
   corrected_gsv_vector_t1,
   col = cmocean::cmocean('speed')(50), 
-  main = "Tile 1 - vector approach"
+  main = 'Tile 1 - vector approach'
 )
 terra::plot(
   corrected_gsv_vector_t2,
   col = cmocean::cmocean('speed')(50), 
-  main = "Tile 2 - vector approach"
+  main = 'Tile 2 - vector approach'
 )
 terra::plot(
   corrected_gsv_vector_t3,
   col = cmocean::cmocean('speed')(50), 
-  main = "Tile 3 - vector approach"
+  main = 'Tile 3 - vector approach'
 )
 
 # save both results for comparison
