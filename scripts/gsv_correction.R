@@ -72,113 +72,76 @@ terra::plot(
   )
 
 # prepare gaps for masking
-# APPROACH 1: raster solution
 # resample gap rasters to match the cropped GSV raster resolution and alignment
-pred_gaps_t1_resampled <- terra::resample(pred_gaps_t1, pred_gsv_t1, method = 'near')
-pred_gaps_t2_resampled <- terra::resample(pred_gaps_t2, pred_gsv_t2, method = 'near')
-pred_gaps_t3_resampled <- terra::resample(pred_gaps_t3, pred_gsv_t3, method = 'near')
+pred_gaps_t1_resampled <- terra::resample(
+  pred_gaps_t1, pred_gsv_t1, method = 'average'
+  )
+pred_gaps_t2_resampled <- terra::resample(
+  pred_gaps_t2, pred_gsv_t2, method = 'average'
+  )
+pred_gaps_t3_resampled <- terra::resample(
+  pred_gaps_t3, pred_gsv_t3, method = 'average'
+  )
 
-# APPROACH 2: vector solution
-# vectorize gap rasters to polygons, keep only gap polygons (gaps = 1)
-gaps_poly_t1 <- terra::as.polygons(pred_gaps_t1, values = T)
-gaps_poly_t1 <- gaps_poly_t1[gaps_poly_t1[[1]] == 1, ]
-gaps_poly_t2 <- terra::as.polygons(pred_gaps_t2, values = T)
-gaps_poly_t2 <- gaps_poly_t2[gaps_poly_t2[[1]] == 1, ]
-gaps_poly_t3 <- terra::as.polygons(pred_gaps_t3, values = T)
-gaps_poly_t3 <- gaps_poly_t3[gaps_poly_t3[[1]] == 1, ]
+# threshold the resampled gap rasters at 0.25 (25% gap coverage per 20x20m cell)
+pred_gaps_t1_resampled_025 <- pred_gaps_t1_resampled > 0.25
+pred_gaps_t2_resampled_025 <- pred_gaps_t2_resampled > 0.25
+pred_gaps_t3_resampled_025 <- pred_gaps_t3_resampled > 0.25
 
-# visualization: compare raster vs vector gaps
-par(mfrow = c(2,3))
+# visualization: show GSV with thresholded gaps
+par(mfrow = c(1,3))
 
-# top row: raster gaps (coarse, 20m resolution)
 terra::plot(
   pred_gsv_t1$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = 'Tile 1 - raster gaps'
+  main = 'Tile 1 - gaps (threshold 0.25)'
   )
 terra::plot(
   terra::ifel(
-    pred_gaps_t1_resampled == 0, NA, pred_gaps_t1_resampled),
+    pred_gaps_t1_resampled_025 == 0, NA, pred_gaps_t1_resampled_025),
   col = 'white', add = T
   )
 terra::plot(
   pred_gsv_t2$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50), 
-  main = 'Tile 2 - raster gaps'
+  main = 'Tile 2 - gaps (threshold 0.25)'
   )
 terra::plot(
   terra::ifel(
-    pred_gaps_t2_resampled == 0, NA, pred_gaps_t2_resampled),
+    pred_gaps_t2_resampled_025 == 0, NA, pred_gaps_t2_resampled_025),
   col = 'white', add = T
   )
 terra::plot(
   pred_gsv_t3$PredictionPlusForestClassification_1,
   col = cmocean::cmocean('speed')(50),
-  main = 'Tile 3 - raster gaps'
+  main = 'Tile 3 - gaps (threshold 0.25)'
   )
 terra::plot(
   terra::ifel(
-    pred_gaps_t3_resampled == 0, NA, pred_gaps_t3_resampled),
+    pred_gaps_t3_resampled_025 == 0, NA, pred_gaps_t3_resampled_025),
   col = 'white', add = T
   )
-
-# bottom row: vector gaps (high-resolution, 0.5m boundaries)
-terra::plot(
-  pred_gsv_t1$PredictionPlusForestClassification_1,
-  col = cmocean::cmocean('speed')(50), 
-  main = 'Tile 1 - vector gaps'
-  )
-terra::plot(gaps_poly_t1, col = NA, border = 'white', lwd = 1, add = T)
-terra::plot(
-  pred_gsv_t2$PredictionPlusForestClassification_1,
-  col = cmocean::cmocean('speed')(50),
-  main = 'Tile 2 - vector gaps'
-  )
-terra::plot(gaps_poly_t2, col = NA, border = 'white', lwd = 1, add = T)
-terra::plot(
-  pred_gsv_t3$PredictionPlusForestClassification_1,
-  col = cmocean::cmocean('speed')(50),
-  main = 'Tile 3 - vector gaps'
-  )
-terra::plot(gaps_poly_t3, col = NA, border = 'white', lwd = 1, add = T)
 
 
 
 # 03 - masking out canopy gaps in GSV prediction
 #------------------------------------------------------------------------------
 
-# APPROACH 1: raster-based masking
-corrected_gsv_raster_t1 <- terra::mask(
+# raster-based masking using thresholded gaps
+masked_gsv_t1 <- terra::mask(
   pred_gsv_t1$PredictionPlusForestClassification_1,
-  pred_gaps_t1_resampled,
+  pred_gaps_t1_resampled_025,
   maskvalues = 1
   )
-corrected_gsv_raster_t2 <- terra::mask(
+masked_gsv_t2 <- terra::mask(
   pred_gsv_t2$PredictionPlusForestClassification_1,
-  pred_gaps_t2_resampled, 
+  pred_gaps_t2_resampled_025, 
   maskvalues = 1
   )
-corrected_gsv_raster_t3 <- terra::mask(
+masked_gsv_t3 <- terra::mask(
   pred_gsv_t3$PredictionPlusForestClassification_1,
-  pred_gaps_t3_resampled, 
+  pred_gaps_t3_resampled_025, 
   maskvalues = 1
-  )
-
-# APPROACH 2: vector-based masking
-corrected_gsv_vector_t1 <- terra::mask(
-  pred_gsv_t1$PredictionPlusForestClassification_1,
-  gaps_poly_t1,
-  inverse = T
-  )
-corrected_gsv_vector_t2 <- terra::mask(
-  pred_gsv_t2$PredictionPlusForestClassification_1, 
-  gaps_poly_t2, 
-  inverse = T
-  )
-corrected_gsv_vector_t3 <- terra::mask(
-  pred_gsv_t3$PredictionPlusForestClassification_1,
-  gaps_poly_t3, 
-  inverse = T
   )
 
 # compare the results
@@ -188,62 +151,78 @@ for (i in 1:3) {
       get(paste0('pred_gsv_t', i))$PredictionPlusForestClassification_1)
       )
     )
-  raster_pixels <- sum(
-    !is.na(terra::values(get(paste0('corrected_gsv_raster_t', i)))))
-  vector_pixels <- sum(
-    !is.na(terra::values(get(paste0('corrected_gsv_vector_t', i)))))
+  masked_pixels <- sum(
+    !is.na(terra::values(get(paste0('masked_gsv_t', i)))))
   
   cat('Tile', i, 'Results:\n')
   cat('  Original GSV pixels:', original_pixels, '\n')
-  cat('  Raster approach - remaining pixels:', raster_pixels, '\n')
-  cat('  Vector approach - remaining pixels:', vector_pixels, '\n')
-  cat('  Raster approach - % masked:', 
-      round((1 - raster_pixels / original_pixels) * 100, 2), '%\n')
-  cat('  Vector approach - % masked:',
-      round((1 - vector_pixels / original_pixels) * 100, 2), '%\n\n')
+  cat('  Masked GSV pixels (remaining):', masked_pixels, '\n')
+  cat('  Pixels masked out:', original_pixels - masked_pixels, '\n')
+  cat('  Percentage masked:', 
+      round((1 - masked_pixels / original_pixels) * 100, 2), '%\n\n')
 }
 
-# visualization: compare raster vs vector approach
-par(mfrow = c(2,3))
+# visualization: show masked GSV results
+par(mfrow = c(1,3))
 
-# top row: raster gaps removed from GSV
 terra::plot(
-  corrected_gsv_raster_t1,
+  masked_gsv_t1,
   col = cmocean::cmocean('speed')(50),
-  main = 'Tile 1 - raster approach'
+  main = 'Tile 1 - masked GSV'
 )
 terra::plot(
-  corrected_gsv_raster_t2,
+  masked_gsv_t2,
   col = cmocean::cmocean('speed')(50),
-  main = 'Tile 2 - raster approach'
+  main = 'Tile 2 - masked GSV'
 )
 terra::plot(
-  corrected_gsv_raster_t3,
+  masked_gsv_t3,
   col = cmocean::cmocean('speed')(50),
-  main = 'Tile 3 - raster approach'
+  main = 'Tile 3 - masked GSV'
 )
 
-# bottom row: vector gaps removed from GSV
-terra::plot(
-  corrected_gsv_vector_t1,
-  col = cmocean::cmocean('speed')(50), 
-  main = 'Tile 1 - vector approach'
-)
-terra::plot(
-  corrected_gsv_vector_t2,
-  col = cmocean::cmocean('speed')(50), 
-  main = 'Tile 2 - vector approach'
-)
-terra::plot(
-  corrected_gsv_vector_t3,
-  col = cmocean::cmocean('speed')(50), 
-  main = 'Tile 3 - vector approach'
-)
+# save masked GSV results
+terra::writeRaster(
+  masked_gsv_t1, 
+  file.path(processed_data_dir, 'masked_gsv_t1.tif'), overwrite = T
+  )
+terra::writeRaster(
+  masked_gsv_t2,
+  file.path(processed_data_dir, 'masked_gsv_t2.tif'), overwrite = T
+  )
+terra::writeRaster(
+  masked_gsv_t3, 
+  file.path(processed_data_dir, 'masked_gsv_t3.tif'), overwrite = T
+  )
 
-# save both results for comparison
-terra::writeRaster(corrected_gsv_raster_t1, file.path(output_dir, 'corrected_gsv_raster_t1.tif'), overwrite = TRUE)
-terra::writeRaster(corrected_gsv_vector_t1, file.path(output_dir, 'corrected_gsv_vector_t1.tif'), overwrite = TRUE)
 
+
+# 04 - calculate mean GSV before and after masking
+#------------------------------------------------------------------------------
+
+# get values of original predicted GSV raster and 
+# the masked GSV raster with gaps masked out
+for (i in 1:3) {
+  
+  original_values <- terra::values(
+    get(paste0('pred_gsv_t', i))$PredictionPlusForestClassification_1
+    )
+  masked_values <- terra::values(get(paste0('masked_gsv_t', i)))
+  
+  # replace masked pixels (NA) with 0
+  masked_values_with_zeros <- masked_values
+  masked_values_with_zeros[is.na(masked_values_with_zeros)] <- 0
+  
+  cat('=== TILE', i, '- GSV MASKING RESULTS ===\n')
+  cat('Mean GSV before masking:', 
+      round(mean(original_values, na.rm = T), 2), 'm³/ha\n')
+  cat('Mean GSV after masking (gaps = 0):', 
+      round(mean(masked_values_with_zeros, na.rm = T), 2), 'm³/ha\n')
+  cat('Difference in mean GSV:', 
+      round(
+        mean(masked_values_with_zeros, na.rm = T) - 
+          mean(original_values, na.rm = T), 2), 'm³/ha\n\n')
+}
 
 
 
