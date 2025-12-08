@@ -146,4 +146,4 @@ load_packages <- function(packages) {
 
 
 load_packages(c('terra', 'lidR' , 'sf', 'stats', 'moments',
-                'dplyr', 'ggplot2', 'caret'))
+                'dplyr', 'ggplot2', 'caret', 'exactextractr'))
