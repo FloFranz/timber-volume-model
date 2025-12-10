@@ -15,11 +15,17 @@ source('src/setup.R', local = TRUE)
 
 
 # 01 - data reading
-#-------------------------------------
+#-------------------------------------------------------------------------------
 
-# read prediction
-pred_gsv <- terra::rast(file.path(output_dir, 'PredictionPlusForestClassification.tif'))
-pred_gsv
+# read predictions
+# linear model
+lm_pred_gsv <- terra::rast(file.path(output_dir, 'PredictionPlusForestClassification.tif'))
+lm_pred_gsv <- lm_pred_gsv$PredictionPlusForestClassification_1
+lm_pred_gsv
+
+# random forest
+rf_pred_gsv <- terra::rast(file.path(output_dir, 'FirstRFRaster.tif'))
+rf_pred_gsv
 
 # read Revier geometries
 reviere <- sf::st_read(file.path(raw_data_dir, 'orga', 'Rfö.shp'))
@@ -29,13 +35,16 @@ reviere
 wefl <- sf::st_read(file.path(raw_data_dir, 'orga', 'WEFL_2025.shp'))
 wefl
 
-terra::plot(pred_gsv$PredictionPlusForestClassification_1)
-terra::plot(reviere$geometry, add = T, border = 'white')
+terra::plot(lm_pred_gsv, main = 'Linear Model Predictions')
+terra::plot(reviere$geometry, border = 'white', add = T)
+
+terra::plot(rf_pred_gsv, main = 'Random Forest Predictions')
+terra::plot(reviere$geometry, border = 'white', add = T)
 
 
 
 # 02 - data preparation
-#-------------------------------------
+#-------------------------------------------------------------------------------
 
 # filter Reviere to those covering the core Solling region
 reviere_solling <- reviere %>%
@@ -54,20 +63,38 @@ wefl_solling <- wefl %>%
     FORSTAMT %in% c(254, 268)
   )
 
-terra::plot(pred_gsv$PredictionPlusForestClassification_1)
-terra::plot(reviere_solling$geometry, add = T, border = 'white')
+terra::plot(lm_pred_gsv, main = 'Linear Model - Solling Reviere')
+terra::plot(reviere_solling$geometry, border = 'white', add = T)
 
-terra::plot(pred_gsv$PredictionPlusForestClassification_1)
-terra::plot(wefl_solling$geometry, add = T, border = 'white')
+terra::plot(rf_pred_gsv, main = 'Random Forest - Solling Reviere')
+terra::plot(reviere_solling$geometry, border = 'white', add = T)
+
+terra::plot(lm_pred_gsv, main = 'Linear Model - Solling WEFL')
+terra::plot(wefl_solling$geometry, border = 'white', add = T)
+
+terra::plot(rf_pred_gsv, main = 'Random Forest - Solling WEFL')
+terra::plot(wefl_solling$geometry, border = 'white', add = T)
 
 
 # 03 - aggregation of GSV values
-#-------------------------------------
+#-------------------------------------------------------------------------------
 
-# calculate mean GSV per Revier
+# calculate mean GSV per Revier for both prediction types
 # keep only valid values (not NA and not 0)
-reviere_mean <- exactextractr::exact_extract(
-  pred_gsv$PredictionPlusForestClassification_1,
+
+# linear model predictions
+reviere_mean_lm <- exactextractr::exact_extract(
+  lm_pred_gsv,
+  reviere_solling,
+  fun = function(values, coverage_fraction) {
+    valid_values <- values[!is.na(values) & values != 0]
+    mean(valid_values)
+  }
+)
+
+# random forest predictions
+reviere_mean_rf <- exactextractr::exact_extract(
+  rf_pred_gsv,
   reviere_solling,
   fun = function(values, coverage_fraction) {
     valid_values <- values[!is.na(values) & values != 0]
@@ -89,40 +116,94 @@ wefl_uabt
 
 sf::st_write(wefl_uabt, file.path(processed_data_dir, 'wefl_uabt.gpkg'))
 
-# calculate mean GSV per UABT unit
+# calculate mean GSV per UABT unit for both prediction types
 # keep only valid values (not NA and not 0)
-uabt_mean <- exactextractr::exact_extract(
-  pred_gsv$PredictionPlusForestClassification_1,
+
+# linear model predictions
+uabt_mean_lm <- exactextractr::exact_extract(
+  lm_pred_gsv,
   wefl_uabt,
   fun = function(values, coverage_fraction) {
     valid_values <- values[!is.na(values) & values != 0]
-      mean(valid_values)
+    mean(valid_values)
+  }
+)
+
+# random forest predictions
+uabt_mean_rf <- exactextractr::exact_extract(
+  rf_pred_gsv,
+  wefl_uabt,
+  fun = function(values, coverage_fraction) {
+    valid_values <- values[!is.na(values) & values != 0]
+    mean(valid_values)
   }
 )
 
 # add results to the respective sf objects
-reviere_solling$mean_gsv <- reviere_mean
-wefl_uabt$mean_gsv <- uabt_mean
-reviere_solling
-wefl_uabt
+# create separate copies for each prediction type
+reviere_solling_lm <- reviere_solling
+reviere_solling_rf <- reviere_solling
+wefl_uabt_lm <- wefl_uabt
+wefl_uabt_rf <- wefl_uabt
 
-# save layers
-sf::st_write(reviere_solling, file.path(output_dir, 'mean_pred_gsv_reviere.gpkg'))
-sf::st_write(wefl_uabt, file.path(output_dir, 'mean_pred_gsv_uabt.gpkg'))
+# add mean GSV values
+reviere_solling_lm$mean_gsv <- reviere_mean_lm
+reviere_solling_rf$mean_gsv <- reviere_mean_rf
+wefl_uabt_lm$mean_gsv <- uabt_mean_lm
+wefl_uabt_rf$mean_gsv <- uabt_mean_rf
 
-# calculate the mean GSV per Forstamt
-forstaemter_mean <- reviere_solling %>%
+reviere_solling_lm
+reviere_solling_rf
+wefl_uabt_lm
+wefl_uabt_rf
+
+# save layers for both prediction types
+sf::st_write(
+  reviere_solling_lm, file.path(output_dir, 'mean_pred_gsv_reviere_lm.gpkg')
+  )
+sf::st_write(
+  reviere_solling_rf, file.path(output_dir, 'mean_pred_gsv_reviere_rf.gpkg')
+  )
+sf::st_write(
+  wefl_uabt_lm, file.path(output_dir, 'mean_pred_gsv_uabt_lm.gpkg')
+  )
+sf::st_write(
+  wefl_uabt_rf, file.path(output_dir, 'mean_pred_gsv_uabt_rf.gpkg')
+  )
+
+# calculate the mean GSV per Forstamt for both prediction types
+forstaemter_mean_lm <- reviere_solling_lm %>%
   sf::st_drop_geometry() %>%      
   dplyr::group_by(FORSTAMT) %>%
   dplyr::summarise(mean_gsv = mean(mean_gsv, na.rm = T))
 
-forstaemter_mean
+forstaemter_mean_rf <- reviere_solling_rf %>%
+  sf::st_drop_geometry() %>%      
+  dplyr::group_by(FORSTAMT) %>%
+  dplyr::summarise(mean_gsv = mean(mean_gsv, na.rm = T))
 
-# plot GSV for each Revier
-terra::plot(reviere_solling['mean_gsv'])
+forstaemter_mean_lm
+forstaemter_mean_rf
 
-# plot GSV for each UABT
-terra::plot(wefl_uabt['mean_gsv'])
+# plot GSV for each Revier - Linear vs. Random Forest Model
+terra::plot(
+  reviere_solling_lm['mean_gsv'], 
+  main = 'Mean GSV per Revier - Linear Model'
+  )
+terra::plot(
+  reviere_solling_rf['mean_gsv'], 
+  main = 'Mean GSV per Revier - Random Forest'
+  )
+
+# plot GSV for each UABT - Linear vs. Random Forest Model
+terra::plot(
+  wefl_uabt_lm['mean_gsv'],
+  main = 'Mean GSV per UABT - Linear Model'
+  )
+terra::plot(
+  wefl_uabt_rf['mean_gsv'],
+  main = 'Mean GSV per UABT - Random Forest'
+  )
 
 
 
