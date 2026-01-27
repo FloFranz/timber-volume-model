@@ -19,13 +19,16 @@ source('src/setup.R', local = TRUE)
 
 # read predictions
 # linear model
-lm_pred_gsv <- terra::rast(file.path(output_dir, 'PredictionPlusForestClassification.tif'))
-lm_pred_gsv <- lm_pred_gsv$PredictionPlusForestClassification_1
+lm_pred_gsv <- terra::rast(file.path(output_dir, 'LMRasterTest.tif'))
 lm_pred_gsv
 
 # random forest
-rf_pred_gsv <- terra::rast(file.path(output_dir, 'FirstRFRaster.tif'))
+rf_pred_gsv <- terra::rast(file.path(output_dir, 'RFTestRaster.tif'))
 rf_pred_gsv
+
+# read w2w metrics
+metrics_w2w <- terra::rast(file.path(output_dir, 'metrics_w2w_solling_incl_forest_type.tif'))
+metrics_w2w
 
 # read Revier geometries
 reviere <- sf::st_read(file.path(raw_data_dir, 'orga', 'Rfö.shp'))
@@ -205,6 +208,37 @@ terra::plot(
   main = 'Mean GSV per UABT - Random Forest'
   )
 
+
+
+# 04 - create Revier attribution raster
+#-------------------------------------------------------------------------------
+
+# rasterize the reviere_solling polygons
+
+# RF prediction raster as template
+revier_raster <- terra::rasterize(
+  x = terra::vect(reviere_solling), 
+  y = rf_pred_gsv,                
+  field = "REVIER"    
+)
+
+# check the result
+revier_raster
+terra::plot(revier_raster)
+terra::plot(reviere_solling$geometry, border = "black", add = T)
+
+# combine GSV values and Revier information with the w2w-metrics raster
+names(rf_pred_gsv) <- "pred_gsv"
+names(revier_raster) <- "revier"
+comb_raster <- c(rf_pred_gsv, revier_raster, metrics_w2w)
+comb_raster
+
+# save to disk
+terra::writeRaster(
+  comb_raster, 
+  file.path(processed_data_dir, "w2w_raster.tif"),
+  overwrite = T
+)
 
 
 
