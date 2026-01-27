@@ -19,13 +19,12 @@ source('src/setup.R', local = TRUE)
 # read GSV predictions
 # linear model
 lm_pred_gsv <- terra::rast(
-  file.path(output_dir, 'PredictionPlusForestClassification.tif')
+  file.path(output_dir, 'LMRasterTest.tif')
   )
-lm_pred_gsv <- lm_pred_gsv$PredictionPlusForestClassification_1
 lm_pred_gsv
 
 # random forest
-rf_pred_gsv <- terra::rast(file.path(output_dir, 'FirstRFRaster.tif'))
+rf_pred_gsv <- terra::rast(file.path(output_dir, 'RFTestRaster.tif'))
 rf_pred_gsv
 
 # plot both predictions
@@ -115,15 +114,14 @@ terra::plot(
 
 # prepare gaps for masking
 # resample gap rasters to match the cropped GSV raster resolution and alignment
-# use linear model rasters as reference (both models have same resolution/alignment)
 pred_gaps_t1_resampled <- terra::resample(
-  pred_gaps_t1, lm_pred_gsv_t1, method = 'average'
+  pred_gaps_t1, rf_pred_gsv_t1, method = 'average'
   )
 pred_gaps_t2_resampled <- terra::resample(
-  pred_gaps_t2, lm_pred_gsv_t2, method = 'average'
+  pred_gaps_t2, rf_pred_gsv_t2, method = 'average'
   )
 pred_gaps_t3_resampled <- terra::resample(
-  pred_gaps_t3, lm_pred_gsv_t3, method = 'average'
+  pred_gaps_t3, rf_pred_gsv_t3, method = 'average'
   )
 
 # threshold the resampled gap rasters at 0.25 (25% gap coverage per 20x20m cell)
@@ -241,10 +239,10 @@ masked_gsv_rf_t3 <- terra::mask(
 for (i in 1:3) {
   # use linear model to get pixel counts (same extent for both models)
   original_pixels <- sum(
-    !is.na(terra::values(get(paste0('lm_pred_gsv_t', i))))
+    !is.na(terra::values(get(paste0('rf_pred_gsv_t', i))))
     )
   masked_pixels <- sum(
-    !is.na(terra::values(get(paste0('masked_gsv_lm_t', i)))))
+    !is.na(terra::values(get(paste0('masked_gsv_rf_t', i)))))
   
   cat('=== TILE', i, 'MASKING RESULTS ===\n')
   cat('  Original GSV pixels:', original_pixels, '\n')
