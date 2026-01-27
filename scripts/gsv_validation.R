@@ -30,14 +30,14 @@ bi_plots
 
 # read GSV prediction (linear model)
 pred_gsv_lm <- terra::rast(
-  file.path(output_dir, 'PredictionPlusForestClassification.tif')
+  file.path(output_dir, 'LMRasterTest.tif')
 )
-pred_gsv_lm <- pred_gsv_lm$PredictionPlusForestClassification_1
+#pred_gsv_lm <- pred_gsv_lm$PredictionPlusForestClassification_1
 pred_gsv_lm
 
 # read GSV prediction (random forest)
 pred_gsv_rf <- terra::rast(
-  file.path(output_dir, 'FirstRFRaster.tif')
+  file.path(output_dir, 'RFTestRaster.tif')
 )
 pred_gsv_rf
 
