@@ -18,15 +18,15 @@ source('src/setup.R', local = TRUE)
 #-------------------------------------
 
 # input path to terrestrial data
-bi_path <- paste0(raw_data_dir, 'BI/')
+bi_path <- file.path(raw_data_dir, 'BI')
 
 # read BI data
 bi_files <- list.files(bi_path)
 
-bi_points <- read.table(paste0(bi_path, 'tblDatPh2_ZE_092023.txt'),
+bi_points <- read.table(file.path(bi_path, 'tblDatPh2_ZE_092023.txt'),
                         header = T, sep = ';')
 
-bi_trees <- read.table(paste0(bi_path, 'tblDatPh2_Vorr_ZE_092023.txt'),
+bi_trees <- read.table(file.path(bi_path, 'tblDatPh2_Vorr_ZE_092023.txt'),
                        header = T, sep = ';')
 
 # select specific forestry offices (e.g. Solling)
@@ -259,9 +259,9 @@ for(i in unique(vor$ba1)){
   print(i)
   
   vor2 <- vor[vor$ba1 == i,]
-  vor2$vol <- anstaltspaket::tg_volumen(ba=i, bhd=vor2$bhd, h=vor2$hoe_mod, info = F)
+  vor2$vol <- TreeGrOSSinR::tg_volumen(ba=i, bhd=vor2$bhd, h=vor2$hoe_mod, info = F)
   
-  data$vol <- anstaltspaket::tg_volumen(ba=i, bhd=data$d, h=data$h, info = F)
+  data$vol <- TreeGrOSSinR::tg_volumen(ba=i, bhd=data$d, h=data$h, info = F)
   m <-mgcv::gam(vol ~ t2(d, h, k = 10), data = data, family = gaussian(link = 'log'))
 
   vor2$volC <- predict(m, newdata=data.frame(d=vor2$bhd, h=vor2$hoe_mod), type = 'response')
@@ -307,23 +307,23 @@ head(vol_stp)
 summary(vol_stp)
 
 # save data frame with the extracted volumes per sample points
-if (!file.exists(paste0(processed_data_dir, 'vol_stp_092023.RDS'))) {
+if (!file.exists(file.path(processed_data_dir, 'vol_stp.RDS'))) {
   
-  saveRDS(vol_stp, file = paste0(processed_data_dir, 'vol_stp_092023.RDS'))
+  saveRDS(vol_stp, file = file.path(processed_data_dir, 'vol_stp.RDS'))
   
 } else {
   
-  print('File vol_stp_092023.RDS already exists.')
+  print('File vol_stp.RDS already exists.')
   
 }
 
-if (!file.exists(paste0(processed_data_dir, 'vol_stp_092023.txt'))) {
+if (!file.exists(file.path(processed_data_dir, 'vol_stp.txt'))) {
   
-  write.table(vol_stp, file = paste0(processed_data_dir, 'vol_stp_092023.txt'), 
+  write.table(vol_stp, file = file.path(processed_data_dir, 'vol_stp.txt'), 
               sep = ';', row.names = F)
   
 } else {
   
-  print('File vol_stp_092023.txt already exists.')
+  print('File vol_stp.txt already exists.')
   
 }
