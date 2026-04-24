@@ -144,6 +144,27 @@ load_packages <- function(packages) {
   }
 }
 
+# install GitHub package if needed
+load_github_package <- function(pkg, repo) {
+  
+  if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+    
+    message(paste("Package '", pkg, "' not found, attempting GitHub install from '", repo, "'...", sep = ""))
+    
+    if (!require("remotes", character.only = TRUE, quietly = TRUE)) {
+      install.packages("remotes", dependencies = TRUE)
+    }
+    
+    remotes::install_github(repo)
+    
+    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+      stop(paste("Package '", pkg, "' not found and could not be installed from GitHub repo '", repo, "'.", sep = ""))
+    }
+  }
+}
+
 
 load_packages(c('terra', 'lidR' , 'sf', 'stats', 'moments',
                 'dplyr', 'ggplot2', 'caret', 'exactextractr'))
+
+load_github_package('TreeGrOSSinR', 'rnuske/TreeGrOSSinR')
