@@ -41,7 +41,7 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(file.path(processed_data_dir, 'vol_stp_092023.gpkg'))
+bi_plots <- sf::st_read(file.path(processed_data_dir, 'vol_stp.gpkg'))
 
 # quick overview
 bi_plots
