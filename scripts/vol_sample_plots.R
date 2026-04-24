@@ -262,6 +262,10 @@ for(i in unique(vor$ba1)){
   vor2$vol <- TreeGrOSSinR::tg_volumen(ba=i, bhd=vor2$bhd, h=vor2$hoe_mod, info = F)
   
   data$vol <- TreeGrOSSinR::tg_volumen(ba=i, bhd=data$d, h=data$h, info = F)
+  
+  # Gam created to protect against negative tg_volumen projections
+  # Replaces negative values with modeled positive values from the GAM
+  # Only for very small volume values
   m <-mgcv::gam(vol ~ t2(d, h, k = 10), data = data, family = gaussian(link = 'log'))
 
   vor2$volC <- predict(m, newdata=data.frame(d=vor2$bhd, h=vor2$hoe_mod), type = 'response')
