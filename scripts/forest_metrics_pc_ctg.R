@@ -21,11 +21,11 @@ source('src/setup.R', local = T)
 # input path to point clouds (normalized and not normalized)
 # point clouds were previously extracted from a larger area
 # in script pc_ctg_extraction.R, now represent a forestry office
-#dsm_pc_path <- paste0(raw_data_dir, 'DSMs_laz/')
-ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_solling/')
+#dsm_pc_path <- file.path(raw_data_dir, 'DSMs_laz')
+ndsm_pc_path <- file.path(processed_data_dir, 'nDSMs_laz_solling')
 
 # input path to administrative data
-orga_path <- paste0(raw_data_dir, 'orga/')
+orga_path <- file.path(raw_data_dir, 'orga')
 
 
 
@@ -41,14 +41,14 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_092023.gpkg'))
+bi_plots <- sf::st_read(file.path(processed_data_dir, 'vol_stp_092023.gpkg'))
 
 # quick overview
 bi_plots
 str(bi_plots)
 
 # read administrative forestry data of Lower Saxony
-nlf_org <- sf::st_read(paste0(orga_path, 'NLF_Org_2022.shp'))
+nlf_org <- sf::st_read(file.path(orga_path, 'NLF_Org_2022.shp'))
 nlf_org
 str(nlf_org)
 
@@ -93,18 +93,18 @@ source('src/calc_metrics.R', local = T)
 # 2 m height threshold according to literature
 # save data frame with the plots and calculated metrics
 # if the data frame with the metrics already exists, read it
-if (!file.exists(paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) {
+if (!file.exists(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) {
   
   lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
   
   plot_metrics <- lidR::plot_metrics(ndsm_pc_ctg, ~calc_metrics(Z, R, B),
                                      bi_plots_projected, radius = 13)
   
-  saveRDS(plot_metrics, file = paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
+  saveRDS(plot_metrics, file = file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
   
 } else {
   
-  plot_metrics <- readRDS(paste0(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
+  plot_metrics <- readRDS(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
   
 }
 
