@@ -5,12 +5,7 @@ Modeling timber volume on terrestrial sample plots.
 
 Sustainable and productive forest management essentially requires information on the spatial distribution of timber volume (or growing stock). In the context of frequent biotic and abiotic calamities, these data are particularly valuable with respect to planning issues such as harvesting, forest regeneration, forest protection interventions or nature conservation activities.
 
-Here, a model is developed to predict timber volume or the growing stock, respectively. It uses several metrics derived from remote sensing data as predictor variables that are suitable for modeling timber volume. The remote sensing data employed include image-based point clouds and digital surface models (DSM) or normalized digital surface models (nDSM, also called canopy height model (CHM)) derived from them. Two methods are compared:
-
-- using normalized point clouds for forest metrics calculation
-- using nDSMs for forest metrics calculation
-
-The metrics calculated based on these two remote sensing products are compared to identify potential differences.
+Here, a Random Forest model is used to predict timber volume (growing stock) from metrics derived from normalized image-based point clouds. The point cloud metrics are used as predictor variables, and forest type information (deciduous vs. coniferous) from the [Copernicus High Resolution Layer Forest Type](https://sdi.eea.europa.eu/catalogue/srv/api/records/77873ff3-4edf-48d4-94cd-c5b7b61da29e?language=all) is included as an additional predictor.
 
 The timber volume is calculated from terrestrially gathered tree attributes in sample plots and serves as response variable.
 
