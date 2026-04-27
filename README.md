@@ -17,6 +17,33 @@ The timber volume is calculated from terrestrially gathered tree attributes in s
 ![](docs/images/metrics_derivation.jpg)
 *Chart illustrating the derivation of remote sensing metrics.*
 
+## Folder structure
+
+The project follows a structured organization for data, functions, and analysis scripts. Execute `src/setup.R` to automatically create the required base folder structure.
+
+```
+timber-volume-model/
+├── data/
+│   ├── raw_data/
+│   │   ├── BI/                         # Terrestrial inventory tables (sample points and trees)
+│   │   ├── orga/                       # Administrative forestry boundaries
+│   │   └── tree_species/               # CLMS forest type raster tiles
+│   ├── processed_data/
+│   │   └── nDSMs_laz_solling/          # Normalized point clouds used for metric extraction
+│   └── metadata/                       # Metadata and documentation files
+├── src/                                # Reusable setup and processing functions
+│   ├── setup.R                         # Creates folder structure, defines data paths, loads packages
+│   ├── format_data.R                   # Harmonizes BI table column names
+│   ├── d_corr_func.R                   # Functions for species-dependent DBH correction
+│   ├── ehk_func.R                      # Height imputation via Einheitshoehenkurve (EHK)
+│   └── calc_metrics.R                  # Point cloud metric computation
+├── scripts/                            # Analysis and processing workflows
+│   ├── vol_sample_plots.R              # Derives timber volume per terrestrial sample plot
+│   └── forest_metrics.R                # Computes plot/pixel forest metrics and adds forest type
+├── docs/                               # Figures and additional documentation
+└── output/                             # Result exports
+```
+
 ## Further information about the topic
 
 Goodbody, T.R.H., Coops, N.C., and White, J.C. (2019). Digital Aerial Photogrammetry for Updating Area-Based Forest Inventories: A Review of Opportunities, Challenges, and Future Directions. *Curr. For. Rep.* 5(2), pp. 55-75. <https://doi.org/10.1007/s40725-019-00087-2>.
