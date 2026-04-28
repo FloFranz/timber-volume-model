@@ -1,8 +1,9 @@
 #------------------------------------------------------------------------------
 # Name:         prediction.R
-# Description:  Script loads the trained global Random Forest model and
+# Description:  Script loads the trained global Random Forest model,
 #               predicts wall-to-wall growing stock (GS) per hectare from
-#               the Solling metrics raster.
+#               the Solling metrics raster, and extracts mean predicted GS
+#               for all terrestrial sample plots.
 # Author:       Georgia Reeves, Florian Franz
 # Contact:      georgia.reeves@nw-fva.de, florian.franz@nw-fva.de
 #------------------------------------------------------------------------------
@@ -110,3 +111,83 @@ if (!file.exists(w2w_prediction_output_path)) {
 cat('\nWall-to-wall prediction available at:\n')
 cat(w2w_prediction_output_path, '\n')
 print(global_rf_prediction)
+
+
+# 05 - extract predicted GS in terrestrial sample plots
+#-------------------------------------
+
+# read administrative forestry data of Lower Saxony
+wefl <- sf::st_read(file.path(raw_data_dir, 'orga', 'WEFL_2025.shp'))
+
+# read terrestrial sample plots
+bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
+if (!file.exists(bi_plots_path)) {
+  stop('Plot file does not exist: ', bi_plots_path)
+}
+bi_plots <- sf::st_read(bi_plots_path)
+
+
+# 05.1 - join plots with forest organization units
+file_bi_plots_wefl <- file.path(processed_data_dir, 'vol_stp_joined_with_wefl.gpkg')
+
+if (file.exists(file_bi_plots_wefl)) {
+  cat('Loading existing joined BI plots with WEFL data...\n')
+  bi_plots_wefl <- sf::st_read(file_bi_plots_wefl)
+} else {
+  cat('Join BI plots with WEFL data...\n')
+
+  bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
+
+  wefl_selected <- wefl %>%
+    dplyr::select(FORSTAMT, REVIER, ABTEILUNG, UABT)
+
+  bi_plots_wefl <- sf::st_join(bi_plots_projected, wefl_selected)
+
+  sf::st_write(
+    bi_plots_wefl,
+    file_bi_plots_wefl
+  )
+}
+
+
+# 05.2 - buffer plots and extract mean predicted GS
+file_vol_stp_vs_pred_vol <- file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')
+
+if (file.exists(file_vol_stp_vs_pred_vol)) {
+  cat('Loading existing buffered BI plots with RF predictions...\n')
+  vol_stp_vs_pred_vol <- sf::st_read(file_vol_stp_vs_pred_vol)
+} else {
+  cat('Extract predicted GS per pixel in terrestrial sample plots...\n')
+
+  vol_stp_vs_pred_vol <- sf::st_buffer(bi_plots_wefl, dist = 13)
+
+  # use prediction raster from disk if available
+  # otherwise use in-memory object
+  if (file.exists(w2w_prediction_output_path)) {
+    prediction_raster_for_extract <- terra::rast(w2w_prediction_output_path)
+  } else {
+    prediction_raster_for_extract <- global_rf_prediction
+  }
+
+  mean_pred_vol_rf_plots <- exactextractr::exact_extract(
+    prediction_raster_for_extract,
+    vol_stp_vs_pred_vol,
+    fun = function(values, coverage_fraction) {
+      valid_values <- values[!is.na(values) & values != 0]
+      if (length(valid_values) > 0) {
+        mean(valid_values)
+      } else {
+        NA_real_
+      }
+    }
+  )
+
+  vol_stp_vs_pred_vol$mean_pred_vol_rf <- mean_pred_vol_rf_plots
+
+  sf::st_write(
+    vol_stp_vs_pred_vol,
+    file_vol_stp_vs_pred_vol
+  )
+}
+
+vol_stp_vs_pred_vol
