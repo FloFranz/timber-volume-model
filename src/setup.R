@@ -164,7 +164,12 @@ load_github_package <- function(pkg, repo) {
 }
 
 
-load_packages(c('terra', 'lidR' , 'sf', 'stats', 'moments',
-                'dplyr', 'ggplot2', 'caret', 'exactextractr'))
+load_packages(c(
+  'terra', 'lidR', 'sf', 'stats', 'moments',
+  'dplyr', 'ggplot2', 'caret', 'exactextractr',
+  'readr', 'randomForest', 'mapview',
+  'scam', 'cowplot', 'mgcv', 'ggrepel',
+  'DBI', 'odbc', 'tidyr', 'mase'
+))
 
 load_github_package('TreeGrOSSinR', 'rnuske/TreeGrOSSinR')
