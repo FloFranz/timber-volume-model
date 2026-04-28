@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Name:         small_area_estimation.R
+# Name:         05_small_area_estimation.R
 # Description:  Script performs direct, model-based, and model-assisted
 #               (GREG) small area estimation of growing stock (GS) in the
 #               Solling area, using Reviere as the small-area units.
@@ -25,14 +25,14 @@ bi_phase1_table <- 'tblDatPh1_ZE'
 # selected forestry offices (Solling: Neuhaus + Dassel)
 selected_datorga_keys <- c('268-2022-002', '254-2022-002')
 
-# BI data preprocessed in script vol_sample_plots.R
+# BI data preprocessed in script 01_vol_sample_plots.R
 # contains GS per plot
 vol_stp_path <- file.path(processed_data_dir, 'vol_stp.RDS')
 
 # BI data with mean predicted GS per plot
 vol_stp_vs_pred_path <- file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')
 
-# plot-level metrics from script forest_metrics.R (source for GREG metrics)
+# plot-level metrics from script 02_forest_metrics.R (source for GREG metrics)
 plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS')
 
 # trained model used to derive final selected predictors

@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------
-# Name:         forest_metrics.R
+# Name:         02_forest_metrics.R
 # Description:  Script calculates plot-level and pixel-level forest metrics
 #               from normalized point clouds and augments them
 #               with CLMS forest type information, including dominant species
@@ -39,7 +39,7 @@ ndsm_pc_ctg
 # quick plot
 lidR::plot(ndsm_pc_ctg)
 
-# read BI data preprocessed in script vol_sample_plots.R
+# read BI data preprocessed in script 01_vol_sample_plots.R
 # contains timber volume per sample points
 bi_plots <- sf::st_read(file.path(processed_data_dir, 'vol_stp.gpkg'))
 

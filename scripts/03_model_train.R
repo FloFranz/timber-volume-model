@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Name:         model_train.R
+# Name:         03_model_train.R
 # Description:  Script models the growing stock (GS) based on previously
 #               derived metrics in terrestrial sample plots using a
 #               Random Forest regression model. The workflow includes

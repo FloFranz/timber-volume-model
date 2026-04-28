@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# Name:         vol_sample_plots.R
+# Name:         01_vol_sample_plots.R
 # Description:  Script calculates timber volume per ha for terrestrial sample plots.
 #               Terrestrial data is first processed and then the single tree volume
 #               is calculated. Based on this, the timber volume per sample point

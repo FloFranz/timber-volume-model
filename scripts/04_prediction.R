@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Name:         prediction.R
+# Name:         04_prediction.R
 # Description:  Script loads the trained global Random Forest model,
 #               predicts wall-to-wall growing stock (GS) per hectare from
 #               the Solling metrics raster, and extracts mean predicted GS
