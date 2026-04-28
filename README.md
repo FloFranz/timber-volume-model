@@ -42,7 +42,7 @@ timber-volume-model/
 │   ├── 04_prediction.R                          # Predicts wall-to-wall growing stock and links predictions to plots
 │   └── 05_small_area_estimation.R               # Direct, model-based and GREG small-area estimation (Reviere)
 ├── docs/                                        # Figures and additional documentation
-└── output/                                      # Result exports (e.g. global_rf_prediction.tif, small-area tables)
+└── output/                                      # Result exports
 ```
 
 ## Further information about the topic
