@@ -20,9 +20,16 @@ source('src/setup.R', local = TRUE)
 # input model and wall-to-wall metrics
 model_path <- file.path(processed_data_dir, 'global_rf_model.rds')
 w2w_metrics_path <- file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
+wefl_path <- file.path(raw_data_dir, 'orga', 'WEFL_2025.shp')
+bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
 
-# output prediction raster
+# outputs
 w2w_prediction_output_path <- file.path(output_dir, 'global_rf_prediction.tif')
+file_bi_plots_wefl <- file.path(processed_data_dir, 'vol_stp_joined_with_wefl.gpkg')
+file_vol_stp_vs_pred_vol <- file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')
+
+# extraction settings
+plot_buffer_radius_m <- 13
 
 
 # 02 - read model and derive predictor names
@@ -30,6 +37,15 @@ w2w_prediction_output_path <- file.path(output_dir, 'global_rf_prediction.tif')
 
 if (!file.exists(model_path)) {
   stop('Model file does not exist: ', model_path)
+}
+if (!file.exists(w2w_metrics_path)) {
+  stop('Wall-to-wall metrics raster does not exist: ', w2w_metrics_path)
+}
+if (!file.exists(wefl_path)) {
+  stop('WEFL file does not exist: ', wefl_path)
+}
+if (!file.exists(bi_plots_path)) {
+  stop('Plot file does not exist: ', bi_plots_path)
 }
 
 global_rf_model <- readRDS(model_path)
@@ -90,20 +106,20 @@ print(Model_Based_Global_RF)
 # 04 - wall-to-wall prediction
 #-------------------------------------
 
-global_rf_prediction <- terra::predict(
-  object = Model_Based_Global_RF,
-  model = global_rf_model,
-  na.rm = TRUE,
-  type = 'response'
-)
-
-# write prediction raster to output directory
 if (!file.exists(w2w_prediction_output_path)) {
+  global_rf_prediction <- terra::predict(
+    object = Model_Based_Global_RF,
+    model = global_rf_model,
+    na.rm = TRUE,
+    type = 'response'
+  )
   terra::writeRaster(
     global_rf_prediction,
+    overwrite = TRUE,
     w2w_prediction_output_path
   )
 } else {
+  global_rf_prediction <- terra::rast(w2w_prediction_output_path)
   cat('\nPrediction raster already exists at:\n')
   cat(w2w_prediction_output_path, '\n')
 }
@@ -117,18 +133,13 @@ print(global_rf_prediction)
 #-------------------------------------
 
 # read administrative forestry data of Lower Saxony
-wefl <- sf::st_read(file.path(raw_data_dir, 'orga', 'WEFL_2025.shp'))
+wefl <- sf::st_read(wefl_path)
 
 # read terrestrial sample plots
-bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
-if (!file.exists(bi_plots_path)) {
-  stop('Plot file does not exist: ', bi_plots_path)
-}
 bi_plots <- sf::st_read(bi_plots_path)
 
 
 # 05.1 - join plots with forest organization units
-file_bi_plots_wefl <- file.path(processed_data_dir, 'vol_stp_joined_with_wefl.gpkg')
 
 if (file.exists(file_bi_plots_wefl)) {
   cat('Loading existing joined BI plots with WEFL data...\n')
@@ -159,18 +170,10 @@ if (file.exists(file_vol_stp_vs_pred_vol)) {
 } else {
   cat('Extract predicted GS per pixel in terrestrial sample plots...\n')
 
-  vol_stp_vs_pred_vol <- sf::st_buffer(bi_plots_wefl, dist = 13)
-
-  # use prediction raster from disk if available
-  # otherwise use in-memory object
-  if (file.exists(w2w_prediction_output_path)) {
-    prediction_raster_for_extract <- terra::rast(w2w_prediction_output_path)
-  } else {
-    prediction_raster_for_extract <- global_rf_prediction
-  }
+  vol_stp_vs_pred_vol <- sf::st_buffer(bi_plots_wefl, dist = plot_buffer_radius_m)
 
   mean_pred_vol_rf_plots <- exactextractr::exact_extract(
-    prediction_raster_for_extract,
+    global_rf_prediction,
     vol_stp_vs_pred_vol,
     fun = function(values, coverage_fraction) {
       valid_values <- values[!is.na(values) & values != 0]
