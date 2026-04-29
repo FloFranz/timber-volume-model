@@ -11,7 +11,7 @@ The overall estimation workflow follows the typical area-based approach by Næss
 
 In addition to wall-to-wall prediction, the workflow includes small-area estimation for Reviere using direct, model-based, and model-assisted (GREG) approaches. For further information see Rao & Molina (2015).
 
-![](docs/images/figure_aba.jpg)
+![](docs/images/figure_aba.png)
 *Figure illustrating the area-based approach.*
 
 ## Folder structure
