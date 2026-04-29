@@ -14,34 +14,63 @@ source('src/setup.R', local = TRUE)
 
 
 
-# 01 - set file paths and read data
+# 01 - user settings
 #-------------------------------------
 
 # input path to terrestrial data
 bi_path <- file.path(raw_data_dir, 'BI')
 
-# read BI data
-bi_files <- list.files(bi_path)
+# input BI files
+bi_points_file <- 'tblDatPh2_ZE_092023.txt'
+bi_trees_file <- 'tblDatPh2_Vorr_ZE_092023.txt'
 
-bi_points <- read.table(file.path(bi_path, 'tblDatPh2_ZE_092023.txt'),
+# selection of forestry offices by DatOrga_Key
+# set to character(0) to process all available offices
+target_datorga_keys <- c('268-2022-002', '254-2022-002')
+
+
+# 02 - data reading and filtering
+#-------------------------------------
+
+bi_points_path <- file.path(bi_path, bi_points_file)
+bi_trees_path <- file.path(bi_path, bi_trees_file)
+
+if (!file.exists(bi_points_path)) {
+  stop('BI points file does not exist: ', bi_points_path)
+}
+
+if (!file.exists(bi_trees_path)) {
+  stop('BI trees file does not exist: ', bi_trees_path)
+}
+
+bi_points <- read.table(bi_points_path,
                         header = T, sep = ';')
 
-bi_trees <- read.table(file.path(bi_path, 'tblDatPh2_Vorr_ZE_092023.txt'),
+bi_trees <- read.table(bi_trees_path,
                        header = T, sep = ';')
 
-# select specific forestry offices (e.g. Solling)
-bi_points <- bi_points[bi_points$DatOrga_Key == '268-2022-002' | 
-                         bi_points$DatOrga_Key == '254-2022-002',]
+if (!('DatOrga_Key' %in% names(bi_points)) || !('DatOrga_Key' %in% names(bi_trees))) {
+  stop('Required column DatOrga_Key is missing in BI input tables.')
+}
 
-bi_trees <- bi_trees[bi_trees$DatOrga_Key == '268-2022-002' | 
-                       bi_trees$DatOrga_Key == '254-2022-002',]
+# optional filter to selected forestry offices
+if (length(target_datorga_keys) > 0) {
+  missing_keys <- setdiff(target_datorga_keys, unique(c(bi_points$DatOrga_Key, bi_trees$DatOrga_Key)))
+  if (length(missing_keys) > 0) {
+    warning('The following target DatOrga_Key values were not found: ',
+            paste(missing_keys, collapse = ', '))
+  }
+
+  bi_points <- bi_points[bi_points$DatOrga_Key %in% target_datorga_keys, ]
+  bi_trees <- bi_trees[bi_trees$DatOrga_Key %in% target_datorga_keys, ]
+}
 
 head(bi_points)
 head(bi_trees)
 
 
 
-# 02 - data preparation
+# 03 - data preparation
 #-------------------------------------
 
 # source and apply function for data formatting
@@ -229,8 +258,8 @@ rm(dat2, dat)
 
 
 
-# 03 - calculate timber volume
-# 03.1: single tree volume
+# 04 - calculate timber volume
+# 04.1: single tree volume
 #-------------------------------------
 
 vor <- bi_points_trees
@@ -288,7 +317,7 @@ plot(bi_points_trees$bhd, bi_points_trees$vol)
 
 
 
-# 03.2: timber volume per sample plot
+# 04.2: timber volume per sample plot
 #--------------------------------------
 
 # group averages of vol and hoe_mod
