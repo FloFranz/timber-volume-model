@@ -24,6 +24,8 @@ bi_phase1_table <- 'tblDatPh1_ZE'
 
 # selected forestry offices (Solling: Neuhaus + Dassel)
 selected_datorga_keys <- c('268-2022-002', '254-2022-002')
+selected_forstaemter <- c(254, 268)
+excluded_revier_ids <- c('268_10', '254_9', '254_8', '254_10')
 
 # BI data preprocessed in script 01_vol_sample_plots.R
 # contains GS per plot
@@ -171,6 +173,17 @@ con <- DBI::dbConnect(
 on.exit(DBI::dbDisconnect(con), add = TRUE)
 
 strata_weights_tbl <- DBI::dbReadTable(con, bi_phase1_table)
+required_phase1_cols <- c(
+  'DatOrga_Key', 'DatPh1_KSPNr', 'DatPh1_RW', 'DatPh1_HW',
+  'DatPh1_BAG', 'DatPh1_AKl'
+)
+missing_phase1_cols <- setdiff(required_phase1_cols, names(strata_weights_tbl))
+if (length(missing_phase1_cols) > 0) {
+  stop(
+    'Phase-1 table is missing required columns: ',
+    paste(missing_phase1_cols, collapse = ', ')
+  )
+}
 
 strata_weights_tbl <- subset(
   strata_weights_tbl,
@@ -197,18 +210,42 @@ if (!file.exists(vol_stp_path)) {
   stop('File does not exist: ', vol_stp_path)
 }
 plot_vol <- readRDS(vol_stp_path)
+required_plot_vol_cols <- c('key', 'kspnr', 'rw', 'hw', 'vol_ha')
+missing_plot_vol_cols <- setdiff(required_plot_vol_cols, names(plot_vol))
+if (length(missing_plot_vol_cols) > 0) {
+  stop(
+    'vol_stp input is missing required columns: ',
+    paste(missing_plot_vol_cols, collapse = ', ')
+  )
+}
 
 # read plot-level prediction/small-area join file from prediction script
 if (!file.exists(vol_stp_vs_pred_path)) {
   stop('File does not exist: ', vol_stp_vs_pred_path)
 }
 plot_pred_small_area <- sf::st_read(vol_stp_vs_pred_path)
+required_pred_cols <- c('key', 'kspnr', 'rw', 'hw', 'FORSTAMT', 'REVIER', 'ABTEILUNG', 'UABT', 'mean_pred_vol_rf')
+missing_pred_cols <- setdiff(required_pred_cols, names(plot_pred_small_area))
+if (length(missing_pred_cols) > 0) {
+  stop(
+    'vol_stp_vs_pred_vol input is missing required columns: ',
+    paste(missing_pred_cols, collapse = ', ')
+  )
+}
 
 # read plot-level metrics (for GREG metric predictors at sample plots)
 if (!file.exists(plot_metrics_path)) {
   stop('File does not exist: ', plot_metrics_path)
 }
 plot_metrics <- readRDS(plot_metrics_path)
+required_plot_metrics_cols <- c('key', 'kspnr')
+missing_plot_metrics_cols <- setdiff(required_plot_metrics_cols, names(plot_metrics))
+if (length(missing_plot_metrics_cols) > 0) {
+  stop(
+    'plot_metrics input is missing required columns: ',
+    paste(missing_plot_metrics_cols, collapse = ', ')
+  )
+}
 
 # derive GREG metrics automatically from final RF model predictors
 if (!file.exists(rf_model_path)) {
@@ -245,13 +282,12 @@ if (!file.exists(w2w_pred_small_area_metrics_raster_path)) {
   reviere <- sf::st_read(reviere_path)
 
   # filter Reviere to those covering the core Solling region
+  excluded_forstamt <- as.numeric(sub('_.*$', '', excluded_revier_ids))
+  excluded_revier <- as.numeric(sub('^.*_', '', excluded_revier_ids))
   reviere_solling <- reviere %>%
     dplyr::filter(
-      FORSTAMT %in% c(254, 268),
-      !((FORSTAMT == 268 & REVIER == 10) |
-          (FORSTAMT == 254 & REVIER == 9) |
-          (FORSTAMT == 254 & REVIER == 8) |
-          (FORSTAMT == 254 & REVIER == 10))
+      FORSTAMT %in% selected_forstaemter,
+      !(FORSTAMT %in% excluded_forstamt & REVIER %in% excluded_revier)
     )
 
   revier_raster <- terra::rasterize(
