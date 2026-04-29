@@ -15,22 +15,50 @@ source('src/setup.R', local = T)
 
 
 
-# 01 - set file paths
+# 01 - user settings
 #-------------------------------------
 
-# input path to point clouds (normalized and not normalized)
-# point clouds were previously extracted from a larger area
-# in script pc_ctg_extraction.R, now represent a forestry office
-#dsm_pc_path <- file.path(raw_data_dir, 'DSMs_laz')
+# input path to normalized point clouds
 ndsm_pc_path <- file.path(processed_data_dir, 'nDSMs_laz_solling')
 
 # input path to administrative data
 orga_path <- file.path(raw_data_dir, 'orga')
 
+# input files
+bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
+nlf_org_path <- file.path(orga_path, 'NLF_Org_2022.shp')
+forest_type_1_path <- file.path(
+  raw_data_dir, 'tree_species', 'CLMS_HRLVLCC_FTY_S2021_R10m_E42N31_03035_V01_R00.tif'
+)
+forest_type_2_path <- file.path(
+  raw_data_dir, 'tree_species', 'CLMS_HRLVLCC_FTY_S2021_R10m_E43N31_03035_V01_R00.tif'
+)
+
+# forestry office filter (set to numeric(0) to keep all)
+selected_forstaemter <- c(268, 254)
+
+# output files
+plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS')
+metrics_w2w_path <- file.path(processed_data_dir, 'metrics_w2w_solling.tif')
+metrics_w2w_forest_type_path <- file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
+plot_metrics_forest_type_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS')
 
 
-# 02 - data reading
+# 02 - input checks and data reading
 #-------------------------------------
+
+if (!dir.exists(ndsm_pc_path)) {
+  stop('Point cloud directory does not exist: ', ndsm_pc_path)
+}
+if (!file.exists(bi_plots_path)) {
+  stop('BI plots file does not exist: ', bi_plots_path)
+}
+if (!file.exists(nlf_org_path)) {
+  stop('Administrative forestry file does not exist: ', nlf_org_path)
+}
+if (!file.exists(forest_type_1_path) || !file.exists(forest_type_2_path)) {
+  stop('One or both forest type tiles do not exist.')
+}
 
 # read normalized point clouds with LAScatalog
 ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
@@ -41,29 +69,25 @@ lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script 01_vol_sample_plots.R
 # contains timber volume per sample points
-bi_plots <- sf::st_read(file.path(processed_data_dir, 'vol_stp.gpkg'))
+bi_plots <- sf::st_read(bi_plots_path)
 
 # quick overview
 bi_plots
 str(bi_plots)
 
 # read administrative forestry data of Lower Saxony
-nlf_org <- sf::st_read(file.path(orga_path, 'NLF_Org_2022.shp'))
+nlf_org <- sf::st_read(nlf_org_path)
 nlf_org
 str(nlf_org)
 
 # read CLMS forest type data
 # two tiles covering the Solling area
 forest_type_1 <- terra::rast(
-  file.path(raw_data_dir,
-            'tree_species',
-            'CLMS_HRLVLCC_FTY_S2021_R10m_E42N31_03035_V01_R00.tif')
+  forest_type_1_path
 )
 
 forest_type_2 <- terra::rast(
-  file.path(raw_data_dir,
-            'tree_species',
-            'CLMS_HRLVLCC_FTY_S2021_R10m_E43N31_03035_V01_R00.tif')
+  forest_type_2_path
 )
 
 forest_type_1
@@ -74,8 +98,15 @@ forest_type_2
 # 03 - data preparation
 #-------------------------------------
 
-# filter plots by year (2022) and forestry offices (Neuhaus = 268, Dassel = 254)
-bi_plots <- bi_plots[grep('268-2022|254-2022', bi_plots$key),]
+# optional filtering of plots and forestry office polygons
+if (length(selected_forstaemter) > 0) {
+  # plot key format expected like "268-2022-002"
+  key_pattern <- paste0('^(', paste(selected_forstaemter, collapse = '|'), ')-')
+  bi_plots <- bi_plots[grep(key_pattern, bi_plots$key), ]
+  fa_solling <- nlf_org[nlf_org$FORSTAMT %in% selected_forstaemter, ]
+} else {
+  fa_solling <- nlf_org
+}
 
 # assign CRS to point clouds (ETRS89 / UTM zone 32N)
 lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
@@ -83,10 +114,6 @@ lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
 # reproject BI plots to the CRS of the point clouds
 # DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
 bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
-
-# filter administrative forestry data
-# by forestry offices 'Neuhaus' (268) and 'Dassel' (254) 
-fa_solling <- nlf_org[nlf_org$FORSTAMT == 268 | nlf_org$FORSTAMT == 254,]
 
 # visualize locations of BI plots
 lidR::plot(ndsm_pc_ctg, mapview = T, 
@@ -110,7 +137,7 @@ source('src/calc_metrics.R', local = T)
 # 2 m height threshold according to literature
 # save data frame with the plots and calculated metrics
 # if the data frame with the metrics already exists, read it
-if (!file.exists(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) {
+if (!file.exists(plot_metrics_path)) {
   
   lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
   
@@ -119,11 +146,11 @@ if (!file.exists(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) 
     bi_plots_projected, radius = 13
     )
   
-  saveRDS(plot_metrics, file = file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
+  saveRDS(plot_metrics, file = plot_metrics_path)
   
 } else {
   
-  plot_metrics <- readRDS(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))
+  plot_metrics <- readRDS(plot_metrics_path)
   
 }
 
@@ -131,7 +158,7 @@ if (!file.exists(file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS'))) 
 # calculate the metrics for the entire collection of files
 # (normalized point clouds in LAScatalog)
 # output resolution of the metrics = 20 m 
-if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling.tif'))) {
+if (!file.exists(metrics_w2w_path)) {
   
   lidR::opt_filter(ndsm_pc_ctg) <- '-drop_z_below 2'
   
@@ -143,12 +170,12 @@ if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling.tif'))) {
   
   terra::writeRaster(
     metrics_w2w,
-    file.path(processed_data_dir, 'metrics_w2w_solling.tif'),
+    metrics_w2w_path,
     overwrite = T)
   
 } else {
   
-  metrics_w2w <- terra::rast(file.path(processed_data_dir, 'metrics_w2w_solling.tif'))
+  metrics_w2w <- terra::rast(metrics_w2w_path)
   
 }
 
@@ -159,7 +186,7 @@ if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling.tif'))) {
 
 # --- pixel level ---
 
-if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif'))) {
+if (!file.exists(metrics_w2w_forest_type_path)) {
   
   # merge CLMS forest type tiles
   forest_type_merg <- terra::mosaic(forest_type_1, forest_type_2)
@@ -180,15 +207,13 @@ if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_
   # write to disk
   terra::writeRaster(
     metrics_w2w,
-    file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif'),
+    metrics_w2w_forest_type_path,
     overwrite = T
   )
   
 } else {
   
-  metrics_w2w <- terra::rast(
-    file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
-    )
+  metrics_w2w <- terra::rast(metrics_w2w_forest_type_path)
   
 }
 
@@ -196,10 +221,6 @@ if (!file.exists(file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_
 
 # create buffer of 13 m around the point centroids
 # --> radius 13 m
-plot_metrics_forest_type_path <- file.path(
-  processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS'
-  )
-
 if (!file.exists(plot_metrics_forest_type_path)) {
   
   plot_metrics_buf <- sf::st_buffer(plot_metrics, dist = 13)
