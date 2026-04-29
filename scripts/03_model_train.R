@@ -228,6 +228,9 @@ plot_rf_validation <- function(observed, predicted, model_label = 'Global Random
 #-------------------------------------
 
 # plot-level metrics already include key, kspnr and dominant_species
+if (!file.exists(rs_plot_metrics_path)) {
+  stop('Input file does not exist: ', rs_plot_metrics_path)
+}
 plot_metrics_dataset <- readr::read_rds(rs_plot_metrics_path)
 
 # dominant_species as factor
@@ -249,14 +252,32 @@ global_model_data <- plot_metrics_dataset %>%
   dplyr::select(vol_ha, dplyr::all_of(full_rf_predictors)) %>%
   na.omit()
 
+required_model_columns <- c('vol_ha', full_rf_predictors)
+missing_model_columns <- setdiff(required_model_columns, names(sf::st_drop_geometry(plot_metrics_dataset)))
+if (length(missing_model_columns) > 0) {
+  stop('Missing required model columns in input data: ', paste(missing_model_columns, collapse = ', '))
+}
+
 
 # 04 - train/test split
 #-------------------------------------
 
+if (!is.numeric(train_fraction) || length(train_fraction) != 1 ||
+    train_fraction <= 0 || train_fraction >= 1) {
+  stop('train_fraction must be a single numeric value in (0, 1).')
+}
+
+if (nrow(global_model_data) < 2) {
+  stop('Not enough observations after filtering/NA removal. Need at least 2 rows.')
+}
+
+train_size <- floor(train_fraction * nrow(global_model_data))
+train_size <- max(1, min(train_size, nrow(global_model_data) - 1))
+
 set.seed(set_seed)
 global_train_indices <- sample(
   seq_len(nrow(global_model_data)),
-  size = train_fraction * nrow(global_model_data)
+  size = train_size
 )
 
 global_train <- global_model_data[global_train_indices, ]
