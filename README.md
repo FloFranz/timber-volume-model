@@ -5,14 +5,14 @@ Modeling timber volume on terrestrial sample plots.
 
 Sustainable and productive forest management essentially requires information on the spatial distribution of timber volume (or growing stock). In the context of frequent biotic and abiotic calamities, these data are particularly valuable with respect to planning issues such as harvesting, forest regeneration, forest protection interventions or nature conservation activities.
 
-Here, a Random Forest model is used to predict timber volume (growing stock) from metrics derived from normalized image-based point clouds. The point cloud metrics are used as predictor variables, and forest type information (deciduous vs. coniferous) from the [Copernicus High Resolution Layer Forest Type](https://sdi.eea.europa.eu/catalogue/srv/api/records/77873ff3-4edf-48d4-94cd-c5b7b61da29e?language=all) is included as an additional predictor.
+Here, a Random Forest model is used to predict timber volume (growing stock) from metrics derived from normalized image-based point clouds. The point cloud metrics are used as predictor variables, and forest type information (deciduous vs. coniferous) from the [Copernicus High Resolution Layer Forest Type](https://sdi.eea.europa.eu/catalogue/srv/api/records/77873ff3-4edf-48d4-94cd-c5b7b61da29e?language=all) is included as an additional predictor. The timber volume is calculated from terrestrially gathered tree attributes in sample plots and serves as response variable.
 
-The timber volume is calculated from terrestrially gathered tree attributes in sample plots and serves as response variable.
+The overall estimation workflow follows the typical area-based approach by Næsset (2002), using terrestrial sample plot information together with wall-to-wall remote sensing metrics (see figure).
 
 In addition to wall-to-wall prediction, the workflow includes small-area estimation for Reviere using direct, model-based, and model-assisted (GREG) approaches. For further information see Rao & Molina (2015).
 
-![](docs/images/metrics_derivation.jpg)
-*Chart illustrating the derivation of remote sensing metrics.*
+![](docs/images/figure_aba.png)
+*Figure illustrating the area-based approach.*
 
 ## Folder structure
 
