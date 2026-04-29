@@ -1,5 +1,5 @@
 # timber-volume-model
-Modeling timber volume on terrestrial sample plots.
+Estimating timber volume (growing stock) from terrestrial plots and wall-to-wall remote sensing metrics.
 
 ## Description
 
