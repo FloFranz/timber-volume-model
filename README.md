@@ -14,9 +14,24 @@ In addition to wall-to-wall prediction, the workflow includes small-area estimat
 ![](docs/images/figure_aba.png)
 *Figure illustrating the area-based approach.*
 
-## Folder structure
+## Project structure
 
 The project follows a structured organization for data, functions, and analysis scripts. Execute `src/setup.R` to automatically create the required base folder structure.
+
+For a standard end-to-end run, execute the numbered scripts in the following order:
+
+1. `scripts/01_vol_sample_plots.R`  
+   Derives plot-level growing stock (`vol_ha`) from terrestrial inventory data.
+2. `scripts/02_forest_metrics.R`  
+   Computes plot-level and wall-to-wall remote sensing metrics and adds forest type information.
+3. `scripts/03_model_train.R`  
+   Trains and validates the Random Forest growing stock model using plot data and metrics.
+4. `scripts/04_prediction.R`  
+   Applies the trained model to wall-to-wall metrics and links predicted values back to sample plots.
+5. `scripts/05_small_area_estimation.R`  
+   Performs Revier-level small-area estimation (direct, model-based, and model-assisted/GREG).
+
+This sequence reflects data dependencies between scripts; later scripts expect outputs from earlier steps.
 
 ```
 timber-volume-model/
