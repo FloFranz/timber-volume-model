@@ -64,14 +64,14 @@ if (!file.exists(forest_type_1_path) || !file.exists(forest_type_2_path)) {
 ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
 ndsm_pc_ctg
 
-# quick plot
+# quick visual check
 lidR::plot(ndsm_pc_ctg)
 
 # read BI data preprocessed in script 01_vol_sample_plots.R
 # contains timber volume per sample points
 bi_plots <- sf::st_read(bi_plots_path)
 
-# quick overview
+# quick data check
 bi_plots
 str(bi_plots)
 

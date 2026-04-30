@@ -162,8 +162,6 @@ if (file.exists(file_bi_plots_wefl)) {
 
 
 # 05.2 - buffer plots and extract mean predicted GS
-file_vol_stp_vs_pred_vol <- file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')
-
 if (file.exists(file_vol_stp_vs_pred_vol)) {
   cat('Loading existing buffered BI plots with RF predictions...\n')
   vol_stp_vs_pred_vol <- sf::st_read(file_vol_stp_vs_pred_vol)

@@ -291,7 +291,7 @@ cat('Dominant species counts in testing data:\n')
 print(table(global_test$dominant_species))
 
 
-# 05 - automated variable selection (RF_2 to RF_4 replacement)
+# 05 - automated variable selection
 #-------------------------------------
 
 rf_selection <- select_rf_variables(
