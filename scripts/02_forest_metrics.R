@@ -19,7 +19,7 @@ source('src/setup.R', local = T)
 #-------------------------------------
 
 # input path to normalized point clouds
-ndsm_pc_path <- file.path(processed_data_dir, 'nDSMs_laz_solling')
+ndsm_pc_path <- file.path(processed_data_dir, 'nDSMs_laz')
 
 # input path to administrative data
 orga_path <- file.path(raw_data_dir, 'orga')
