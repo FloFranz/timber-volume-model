@@ -20,6 +20,7 @@ required_data_dirs <- c(
   'data/raw_data/orga',
   'data/raw_data/tree_species',
   'data/processed_data',
+  'data/processed_data/nDSMs_laz',
   'data/metadata'
 )
 
