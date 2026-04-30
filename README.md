@@ -33,6 +33,8 @@ For a standard end-to-end run, execute the numbered scripts in the following ord
 
 This sequence reflects data dependencies between scripts; later scripts expect outputs from earlier steps.
 
+Each script contains a dedicated **user settings** section near the top, where script-specific configurations (e.g., input paths, output options, and processing parameters) can be defined before execution.
+
 ```
 timber-volume-model/
 ├── data/
