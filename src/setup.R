@@ -12,40 +12,21 @@
 # 01 - setup working environment
 #--------------------------------
 
-# create directory called 'data' with subdirectories
-# 'raw_data', 'processed_data', and 'metadata'
-if (!file.exists(paste('data')) |
-    (!file.exists(paste('data/raw_data')) |
-     (!file.exists(paste('data/raw_data/DSMs')) |
-      (!file.exists(paste('data/raw_data/DSMs_laz')) |
-      (!file.exists(paste('data/raw_data/nDSMs')) |
-       (!file.exists(paste('data/raw_data/nDSMs_laz')) |
-        (!file.exists(paste('data/raw_data/DOP')) |
-         (!file.exists(paste('data/raw_data/BI')) |
-          (!file.exists(paste('data/raw_data/orga')) |
-           (!file.exists(paste('data/raw_data/microclimate')) |
-            (!file.exists(paste('data/raw_data/tree_species')) |
-             (!file.exists(paste('data/processed_data')) |
-              (!file.exists(paste('data/metadata'))))))))))))))) {
-  
-  dir.create('data')
-  dir.create('data/raw_data')
-  dir.create('data/raw_data/DSMs')
-  dir.create('data/raw_data/DSMs_laz')
-  dir.create('data/raw_data/nDSMs')
-  dir.create('data/raw_data/nDSMs_laz')
-  dir.create('data/raw_data/DOP')
-  dir.create('data/raw_data/BI')
-  dir.create('data/raw_data/orga')
-  dir.create('data/raw_data/microclimate')
-  dir.create('data/raw_data/tree_species')
-  dir.create('data/processed_data')
-  dir.create('data/metadata')
-  
-} else {
-  
-  invisible()
-  
+# create directory called 'data' with subfolders
+required_data_dirs <- c(
+  'data',
+  'data/raw_data',
+  'data/raw_data/BI',
+  'data/raw_data/orga',
+  'data/raw_data/tree_species',
+  'data/processed_data',
+  'data/metadata'
+)
+
+for (dir_path in required_data_dirs) {
+  if (!dir.exists(dir_path)) {
+    dir.create(dir_path, recursive = TRUE)
+  }
 }
 
 # create directory called 'src'
