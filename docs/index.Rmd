@@ -1,111 +1,230 @@
 ---
-title: "Wall-to-wall modeling of the growing stock - figures"
-author: "Florian Franz"
-date: "`r Sys.Date()`"
+title: 'Growing stock modeling workflow'
+author: 'Florian Franz'
+date: '`r Sys.Date()`'
 output:
   prettydoc::html_pretty:
     theme: cayman
     toc: yes
+    css: captions.css
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F, warning = F)
-```
-
-This document is used to create figures as part of the wall-to-wall modeling of the growing stock (GS).  
-
-```{r setup script, warning=FALSE, }
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+# Resolve repository root so paths match scripts when knitting from docs/ or project root
+proj_root <- if (file.exists('src/setup.R')) {
+  normalizePath('.', winslash = '/', mustWork = TRUE)
+} else if (file.exists('../src/setup.R')) {
+  normalizePath('..', winslash = '/', mustWork = TRUE)
+} else {
+  stop('Cannot find src/setup.R (knit from project root or from docs/).')
+}
+setwd(proj_root)
 source('src/setup.R', local = TRUE)
 ```
 
-```{r set file paths}
-ndsm_pc_path <- paste0(processed_data_dir, 'nDSMs_laz_neuhaus/')
-orga_path <- paste0(raw_data_dir, 'orga/')
+This document documents the **wall-to-wall growing stock modeling in the Solling area**: it briefly describes each script and shows selected maps and plots built from the same outputs the scripts write.  
+
+| Step | Script | Main outputs (under `data/processed_data/` or `output/`) |
+|------|--------|------------------------------------------------------------|
+| 01 | `scripts/01_vol_sample_plots.R` | `vol_stp.RDS`, `vol_stp.gpkg` |
+| 02 | `scripts/02_forest_metrics.R` | `plot_metrics_pc_solling_incl_forest_type.RDS`, `metrics_w2w_solling_incl_forest_type.tif` |
+| 03 | `scripts/03_model_train.R` | `global_rf_model.rds`, `RF_full_model_variable_importance.csv` |
+| 04 | `scripts/04_prediction.R` | `output/global_rf_prediction.tif`, `vol_stp_vs_pred_vol.gpkg` |
+| 05 | `scripts/05_small_area_estimation.R` | `output/small_area_estimation_revier.csv`, `output/w2w_pred_small_area_metrics.tif` |
+
+---
+
+## 01 — Terrestrial sample plots (`01_vol_sample_plots.R`)
+
+Phase-2 BI (Betriebsinventur) points and trees are cleaned, tree volumes are computed, and **volume per hectare** is aggregated to each sample point. Tabular results are written to `vol_stp.RDS`. Script 02 expects sample-plot geometries as **`vol_stp.gpkg`**.
+
+```{r fig-01-vol-distribution, fig.cap = 'Distribution of terrestrial growing stock (m³ ha⁻¹) at sample points.', eval = file.exists(file.path(processed_data_dir, 'vol_stp.RDS'))}
+vol_stp_tbl <- readRDS(file.path(processed_data_dir, 'vol_stp.RDS'))
+graphics::hist(
+  vol_stp_tbl$vol_ha,
+  main = '',
+  breaks = 40,
+  xlab = 'Terrestrial growing stock (m\u00b3 ha\u207b\u00b9)',
+  col = 'grey85',
+  border = 'white'
+)
 ```
 
-```{r data reading, results='hide'}
-ndsm_pc_ctg <- lidR::readLAScatalog(ndsm_pc_path)
-bi_plots <- sf::st_read(paste0(processed_data_dir, 'vol_stp_Kopie_GR_092023.gpkg'))
-nlf_org <- sf::st_read(paste0(orga_path, 'NLF_Org_2022.shp'))
-foa_abt <- sf::st_read(paste0(orga_path, 'foa-bb_namen_abt-uabt-ufl.shp'))
-metrics_w2w <- terra::rast(paste0(output_dir, 'metrics_w2w_neuhaus.tif'))
-vol_ha_pred <- terra::rast(paste0(output_dir, 'vol_ha_pred_neuhaus.tif'))
+<figure class="mapview-figure">
+
+```{r fig-01-plot-map, eval = file.exists(file.path(processed_data_dir, 'vol_stp.gpkg'))}
+orga_nlf <- file.path(raw_data_dir, 'orga', 'NLF_Org_2022.shp')
+bi <- sf::st_read(file.path(processed_data_dir, 'vol_stp.gpkg'), quiet = TRUE)
+topo <- 'OpenTopoMap'
+mv_pts <- mapview::mapview(
+  bi,
+  map.types = topo,
+  col.regions = 'darkred',
+  cex = 2,
+  legend = FALSE,
+  layer.name = 'sample_plots'
+)
+if (!file.exists(orga_nlf)) {
+  mv_pts
+} else {
+  fa <- sf::st_read(orga_nlf, quiet = TRUE) |>
+    dplyr::filter(FORSTAMT %in% c(268, 254)) |>
+    dplyr::group_by(FORSTAMT) |>
+    dplyr::summarise(geometry = sf::st_union(geometry), .groups = 'drop') |>
+    sf::st_transform(sf::st_crs(bi))
+  mapview::mapview(
+    fa,
+    map.types = topo,
+    col.regions = 'white',
+    alpha.regions = 0,
+    color = 'black',
+    lwd = 2.5,
+    legend = FALSE,
+    layer.name = 'NLF_org_borders'
+  ) + mv_pts
+}
 ```
 
-```{r data preparation}
-# filter plots by year (2022) and forestry office (Neuhaus = 268)
-bi_plots <- bi_plots[grep('268-2022-', bi_plots$key),]
+<figcaption style="text-align: left; color: #586069; margin: 0.35rem 0 1rem;">Sample plot locations with boundaries of forestry offices Neuhaus and Dassel in the Solling area.</figcaption>
 
-# assign CRS to point clouds (ETRS89 / UTM zone 32N)
-lidR::crs(ndsm_pc_ctg) <- 'EPSG:25832'
+</figure>
 
-# reproject BI plots to the CRS of the point clouds
-# DHDN / 3-degree Gauss-Kruger zone 3 --> ETRS89 / UTM zone 32N
-bi_plots_projected <- sf::st_transform(bi_plots, sf::st_crs(25832))
+---
 
-# filter administrative forestry data
-# by forestry office 'Neuhaus' (268)
-# pick a single district ('Buchenberg' = 12) in this forestry office
-# with its stand classification boundaries
-fa_neuhaus <- nlf_org[nlf_org$FORSTAMT == 268,]
-rev_buchenberg <- foa_abt[foa_abt$FORSTAMT == 268 & foa_abt$REVIER == 12,]
+## 02 — Point cloud metrics (`02_forest_metrics.R`)
 
-# mask zmean from the w2w metrics layer to forestry office Neuhaus
-zmean_masked <- terra::mask(metrics_w2w$zmean, fa_neuhaus)
+Normalized image-based point clouds are summarized to **plot-level** metrics and a **wall-to-wall** metric stack. Dominant species from Copernicus Land Monitoring Service (CLMS) forest type tiles is added. The metrics feed the random forest in step 03.
 
-# mask the predicted GS to forestry office Neuhaus
-# and set neative values to 0
-vol_ha_pred_masked <- terra::mask(vol_ha_pred, fa_neuhaus)
-vol_ha_pred_masked <- terra::clamp(vol_ha_pred_masked, lower = 0)
-
-# mask the predicted GS to selected forest district
-vol_ha_pred_masked_rev <- terra::mask(vol_ha_pred, rev_buchenberg)
-vol_ha_pred_masked_rev <- terra::clamp(vol_ha_pred_masked_rev, lower = 0)
-
-# intersect the plots with selected forest district
-bi_plots_rev <- sf::st_intersection(bi_plots_projected, rev_buchenberg)
+```{r prep-02-maps, include = FALSE}
+metrics_stack <- file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
+orga_shp <- file.path(raw_data_dir, 'orga', 'NLF_Org_2022.shp')
+have_02_maps <- file.exists(metrics_stack) && file.exists(orga_shp)
+if (have_02_maps) {
+  metrics_w2w <- terra::rast(metrics_stack)
+  nlf_org <- sf::st_read(orga_shp, quiet = TRUE)
+  study_fa <- nlf_org[nlf_org$FORSTAMT %in% c(254, 268), ]
+  if ('zmean' %in% names(metrics_w2w)) {
+    zmean_masked <- terra::mask(metrics_w2w[['zmean']], terra::vect(study_fa))
+  } else {
+    zmean_masked <- NULL
+  }
+} else {
+  zmean_masked <- NULL
+}
 ```
 
-### Overview of the forestry office "Neuhaus"
-
-The forestry office "Neuhaus" is located in the Solling, a low mountain range in southwestern Lower Saxony (Germany). Nearly 2000 sample plots (red points) are within the forestry office.
-
-```{r plot overview of forestry office}
-mapview::mapview(fa_neuhaus, map.type = c('OpenTopoMap', 'Esri.WorldImagery'),
-                 alpha.regions = 0, lwd = 3, legend = F) +
-mapview::mapview(bi_plots_projected, col.regions = 'red', cex = 2, legend = F)
-```
-\
-
-### Mean canopy height and predicted GS
-
-The left figure shows the mean canopy height ($m$) in the forestry office obtained from normalized point clouds. The right figure shows the predicted GS ($m^3 ha^{-1}$) based on this mean canopy height.
-
-```{r plot zmean and predicted GS, out.width='100%'}
-par(mfrow = c(1,2))
-terra::plot(zmean_masked, plg = list(size=c(0.7,0.7)))
-terra::plot(fa_neuhaus$geometry, alpha = 0, lwd = 1.5, add = T)
-terra::plot(vol_ha_pred_masked, plg = list(size=c(0.7,0.7)),
-            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
-                                        rev = T))
-terra::plot(fa_neuhaus$geometry, alpha = 0, lwd = 1.5, add = T)
+```{r fig-02-zmean, fig.cap = 'Mean canopy height (m) from the wall-to-wall metric stack in the Solling area.', eval = !is.null(zmean_masked), fig.width = 7, fig.height = 6}
+terra::plot(
+  zmean_masked,
+  plg = list(x = 'right', size = c(1, 0.65))
+)
+terra::plot(terra::vect(study_fa), add = TRUE, lwd = 1.2)
 ```
 
-```{r plot forest district with sample plots, eval=FALSE}
-terra::plot(vol_ha_pred_masked_rev, ext = terra::ext(rev_buchenberg),
-            plg = list(size=c(0.7,0.7)),
-            col = grDevices::hcl.colors(n = 50, palette = 'YlGn',
-                                        rev = T))
-terra::plot(rev_buchenberg$geometry, add = T)
-terra::plot(bi_plots_rev, pch = 16, cex = 0.8, col = 'red', add = T)
+---
+
+## 03 — Random forest training (`03_model_train.R`)
+
+A global random forest predicts **plot-level** growing stock from point cloud-derived metrics (and `dominant_species` when included). The script runs automated predictor subsetting and fits the final model.
+
+```{r fig-03-importance, fig.cap = 'Predictor importance (%IncMSE) from the variable-selection run (top 15).', eval = file.exists(file.path(processed_data_dir, 'RF_full_model_variable_importance.csv')), fig.width = 7, fig.height = 5}
+imp <- read.csv(file.path(processed_data_dir, 'RF_full_model_variable_importance.csv'))
+imp_top <- head(imp[order(imp$inc_mse, decreasing = TRUE), ], 15)
+imp_top$predictor <- factor(imp_top$predictor, levels = rev(imp_top$predictor))
+ggplot2::ggplot(imp_top, ggplot2::aes(x = inc_mse, y = predictor)) +
+  ggplot2::geom_col(fill = 'steelblue') +
+  ggplot2::labs(x = '%IncMSE', y = NULL) +
+  ggplot2::theme_bw()
 ```
 
-### Predicted GS in single forest districts
+---
 
-Of course, individual districts within the forestry office can also be viewed in more detail.
+## 04 — Wall-to-wall prediction (`04_prediction.R`)
 
-![](images/forestry_office_and_district.jpg){height=100%}
+The fitted model is applied to **`metrics_w2w_solling_incl_forest_type.tif`**. The raster **`output/global_rf_prediction.tif`** holds predicted growing stock (m³ ha⁻¹). Mean predicted values are extracted within buffered plots and stored in **`vol_stp_vs_pred_vol.gpkg`** for comparison with terrestrial volumes.
 
+```{r prep-04-pred, include = FALSE}
+pred_path <- file.path(output_dir, 'global_rf_prediction.tif')
+orga_shp <- file.path(raw_data_dir, 'orga', 'NLF_Org_2022.shp')
+have_pred_ras <- file.exists(pred_path) && exists('study_fa', inherits = FALSE)
+if (!exists('study_fa', inherits = FALSE) && file.exists(orga_shp)) {
+  nlf_org <- sf::st_read(orga_shp, quiet = TRUE)
+  study_fa <- nlf_org[nlf_org$FORSTAMT %in% c(254, 268), ]
+  have_pred_ras <- file.exists(pred_path)
+}
+if (have_pred_ras) {
+  vol_pred <- terra::rast(pred_path)
+  vol_pred_masked <- terra::mask(vol_pred, terra::vect(study_fa))
+  vol_pred_masked <- terra::clamp(vol_pred_masked, lower = 0)
+} else {
+  vol_pred_masked <- NULL
+}
+```
 
+```{r fig-04-pred, fig.cap = 'Predicted growing stock (m³ ha⁻¹) from the global random forest model.', eval = !is.null(vol_pred_masked), fig.width = 7, fig.height = 6}
+terra::plot(
+  vol_pred_masked,
+  plg = list(x = 'right', size = c(1, 0.65)),
+  col = grDevices::hcl.colors(n = 50, palette = 'YlGn', rev = TRUE)
+)
+terra::plot(terra::vect(study_fa), add = TRUE, lwd = 1.2)
+```
 
+```{r fig-04-obs-pred, fig.cap = 'Observed vs. predicted growing stock. Each predicted value is the spatial mean of the wall-to-wall prediction raster inside the terrestrial sample-plot buffer (13m).', eval = file.exists(file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')), fig.width = 6, fig.height = 6}
+vp <- sf::st_read(file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg'), quiet = TRUE)
+vp_df <- sf::st_drop_geometry(vp)
+ok <- stats::complete.cases(vp_df$vol_ha, vp_df$mean_pred_vol_rf)
+x <- vp_df$vol_ha[ok]
+y <- vp_df$mean_pred_vol_rf[ok]
+lim <- c(0, 1500)
+op <- graphics::par(no.readonly = TRUE)
+on.exit(graphics::par(op), add = TRUE)
+graphics::par(pty = 's')
+plot(
+  x,
+  y,
+  asp = 1,
+  xlim = lim,
+  ylim = lim,
+  xlab = 'Observed (m\u00b3 ha\u207b\u00b9)',
+  ylab = 'Predicted (m\u00b3 ha\u207b\u00b9)',
+  pch = 16,
+  col = rgb(0, 0, 0, 0.35)
+)
+abline(0, 1, col = 'red', lwd = 2, lty = 2)
+```
 
+---
+
+## 05 — Small area estimation (`05_small_area_estimation.R`)
+
+For Reviere in the selected forestry offices, the script combines **design-based** (stratified) estimates, raster **model-based** estimates, and **GREG** model-assisted estimates. Compared with the direct stratified estimates, the **model-assisted** (GREG) revier-level mean usually has a **smaller standard error**, because auxiliary wall-to-wall information is used to stabilize the estimate (see table below).
+
+```{r tab-05-revier, eval = file.exists(file.path(output_dir, 'small_area_estimation_revier.csv'))}
+cols_tab05 <- c(
+  'revier_id',
+  'direct_stratified_mean_vol_ha',
+  'direct_stratified_se',
+  'model_based_mean_vol_ha',
+  'greg_pop_mean',
+  'greg_se_mean'
+)
+revier_tbl <- read.csv(file.path(output_dir, 'small_area_estimation_revier.csv'))
+revier_tbl <- revier_tbl[, cols_tab05[cols_tab05 %in% names(revier_tbl)], drop = FALSE]
+pretty_tab05 <- c(
+  revier_id = 'Revier',
+  direct_stratified_mean_vol_ha = 'Direct mean (m\u00b3 ha\u207b\u00b9)',
+  direct_stratified_se = 'Direct standard error (m\u00b3 ha\u207b\u00b9)',
+  model_based_mean_vol_ha = 'Model-based mean (m\u00b3 ha\u207b\u00b9)',
+  greg_pop_mean = 'Model-assisted mean (m\u00b3 ha\u207b\u00b9)',
+  greg_se_mean = 'Model-assisted standard error (m\u00b3 ha\u207b\u00b9)'
+)
+cn <- names(revier_tbl)
+idx <- cn %in% names(pretty_tab05)
+names(revier_tbl)[idx] <- unname(pretty_tab05[cn[idx]])
+knitr::kable(
+  head(revier_tbl, 5),
+  caption = 'First 5 Reviere: direct stratified mean, model-based raster mean, and GREG model-assisted mean (full results in CSV).'
+)
+```

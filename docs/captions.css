@@ -1,0 +1,42 @@
+/*
+  Smaller figure & table captions for prettydoc Cayman.
+  Theme uses .main-content (font-size ~1.1rem), not .main-container — previous
+  rules missed knitr / pandoc figures. Use #content + .main-content + figure.
+*/
+
+#content figure figcaption,
+#content .figure figcaption,
+.main-content figure figcaption,
+.main-content .figure figcaption,
+.main-content div.figure figcaption,
+.main-content figure > p,
+.main-content .figure > p,
+.main-content div.figure > p,
+.main-content .figure img + p,
+.main-content div.figure img + p,
+.main-content p.caption,
+.main-container figure figcaption,
+.main-container .figure > p,
+.main-container div.figure > p,
+.main-container p.caption,
+figure.figure figcaption,
+div.figure > p,
+.figure > p,
+.figure img + p,
+div.figure img + p,
+p.caption,
+table caption,
+.table caption,
+figure.mapview-figure > figcaption,
+figcaption,
+.caption-text,
+/* Pandoc/knitr: captioned image in a .float wrapper uses div.figcaption (not <figcaption>) */
+div.figcaption,
+.main-content div.figcaption,
+#content div.figcaption,
+div.float > div.figcaption,
+.float > div.figcaption,
+div.float div.figcaption {
+  font-size: 0.9rem !important;
+  line-height: 1.35 !important;
+}
