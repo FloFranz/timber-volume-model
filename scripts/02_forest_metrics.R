@@ -39,6 +39,9 @@ forest_type_paths <- list.files(
 # forestry office filter (set to numeric(0) to keep all)
 selected_forstaemter <- c(268, 254)
 
+# key column in BI input file (e.g. 'key' for vol_stp.gpkg)
+bi_key_col <- 'key'
+
 # output files
 plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS')
 metrics_w2w_path <- file.path(processed_data_dir, 'metrics_w2w_solling.tif')
@@ -73,6 +76,15 @@ lidR::plot(ndsm_pc_ctg)
 # contains timber volume per sample points
 bi_plots <- sf::st_read(bi_plots_path)
 
+# standardize key column name used in this script
+if (!bi_key_col %in% names(bi_plots)) {
+  stop(
+    'Configured bi_key_col (\'', bi_key_col, '\') not found in BI data. Available columns: ',
+    paste(names(bi_plots), collapse = ', ')
+  )
+}
+bi_plots$key <- as.character(bi_plots[[bi_key_col]])
+
 # quick data check
 bi_plots
 str(bi_plots)
@@ -93,9 +105,17 @@ forest_type_tiles
 
 # optional filtering of plots and forestry office polygons
 if (length(selected_forstaemter) > 0) {
-  # plot key format expected like "268-2022-002"
+  # if key format is like "268-2022-002", filter plots by selected Forstaemter;
+  # otherwise keep all plots and only filter forestry office polygons
   key_pattern <- paste0('^(', paste(selected_forstaemter, collapse = '|'), ')-')
-  bi_plots <- bi_plots[grep(key_pattern, bi_plots$key), ]
+  if (any(grepl('^\\d+-', bi_plots$key))) {
+    bi_plots <- bi_plots[grep(key_pattern, bi_plots$key), ]
+  } else {
+    warning(
+      'selected_forstaemter is set, but BI key values in column \'', bi_key_col,
+      '\' are not in expected \'<Forstamt>-...\' format. Plot filtering by key is skipped.'
+    )
+  }
   fa_solling <- nlf_org[nlf_org$FORSTAMT %in% selected_forstaemter, ]
 } else {
   fa_solling <- nlf_org
