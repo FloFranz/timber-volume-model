@@ -23,15 +23,17 @@ ndsm_pc_path <- file.path(processed_data_dir, 'nDSMs_laz')
 
 # input path to administrative data
 orga_path <- file.path(raw_data_dir, 'orga')
+forest_type_dir <- file.path(raw_data_dir, 'tree_species')
 
 # input files
 bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
 nlf_org_path <- file.path(orga_path, 'NLF_Org_2022.shp')
-forest_type_1_path <- file.path(
-  raw_data_dir, 'tree_species', 'CLMS_HRLVLCC_FTY_S2021_R10m_E42N31_03035_V01_R00.tif'
-)
-forest_type_2_path <- file.path(
-  raw_data_dir, 'tree_species', 'CLMS_HRLVLCC_FTY_S2021_R10m_E43N31_03035_V01_R00.tif'
+
+# CLMS forest type tiles; all matching GeoTIFFs in directory are used
+forest_type_paths <- list.files(
+  forest_type_dir,
+  pattern = '\\.tif$',
+  full.names = TRUE
 )
 
 # forestry office filter (set to numeric(0) to keep all)
@@ -56,8 +58,8 @@ if (!file.exists(bi_plots_path)) {
 if (!file.exists(nlf_org_path)) {
   stop('Administrative forestry file does not exist: ', nlf_org_path)
 }
-if (!file.exists(forest_type_1_path) || !file.exists(forest_type_2_path)) {
-  stop('One or both forest type tiles do not exist.')
+if (length(forest_type_paths) == 0) {
+  stop('No CLMS forest type tiles found in: ', forest_type_dir)
 }
 
 # read normalized point clouds with LAScatalog
@@ -80,18 +82,9 @@ nlf_org <- sf::st_read(nlf_org_path)
 nlf_org
 str(nlf_org)
 
-# read CLMS forest type data
-# two tiles covering the Solling area
-forest_type_1 <- terra::rast(
-  forest_type_1_path
-)
-
-forest_type_2 <- terra::rast(
-  forest_type_2_path
-)
-
-forest_type_1
-forest_type_2
+# read CLMS forest type data (any number of tiles)
+forest_type_tiles <- lapply(forest_type_paths, terra::rast)
+forest_type_tiles
 
 
 
@@ -189,7 +182,11 @@ if (!file.exists(metrics_w2w_path)) {
 if (!file.exists(metrics_w2w_forest_type_path)) {
   
   # merge CLMS forest type tiles
-  forest_type_merg <- terra::mosaic(forest_type_1, forest_type_2)
+  forest_type_merg <- if (length(forest_type_tiles) == 1) {
+    forest_type_tiles[[1]]
+  } else {
+    do.call(terra::mosaic, forest_type_tiles)
+  }
   
   # assign CRS (EPSG:25832) to w2w-metrics raster
   terra::crs(metrics_w2w) <- 'EPSG:25832'
