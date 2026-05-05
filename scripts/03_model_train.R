@@ -18,11 +18,14 @@ source('src/model_train_helpers.R', local = T)
 # 01 - user settings
 #-------------------------------------
 
-# input data
-rs_plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS')
-
 # dataset identifier used in output file names
 dataset_id <- 'solling'
+
+# input data
+rs_plot_metrics_path <- file.path(
+  processed_data_dir,
+  paste0('plot_metrics_pc_', dataset_id, '_incl_forest_type.RDS')
+)
 
 # response variable (e.g. 'vol_ha' or 'sum_vol_ha')
 response_var <- 'vol_ha'
