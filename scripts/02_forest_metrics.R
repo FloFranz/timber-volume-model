@@ -33,7 +33,7 @@ nlf_org_path <- file.path(orga_path, 'NLF_Org_2022.shp')
 forest_type_paths <- list.files(
   forest_type_dir,
   pattern = '\\.tif$',
-  full.names = TRUE
+  full.names = T
 )
 
 # forestry office filter (set to numeric(0) to keep all)
