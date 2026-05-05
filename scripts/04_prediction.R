@@ -2,7 +2,7 @@
 # Name:         04_prediction.R
 # Description:  Script loads the trained global Random Forest model,
 #               predicts wall-to-wall growing stock (GS) per hectare from
-#               the Solling metrics raster, and extracts mean predicted GS
+#               the input metrics raster, and extracts mean predicted GS
 #               for all terrestrial sample plots.
 # Author:       Georgia Reeves, Florian Franz
 # Contact:      georgia.reeves@nw-fva.de, florian.franz@nw-fva.de

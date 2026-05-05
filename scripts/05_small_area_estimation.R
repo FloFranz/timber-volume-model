@@ -2,7 +2,7 @@
 # Name:         05_small_area_estimation.R
 # Description:  Script performs direct, model-based, and model-assisted
 #               (GREG) small area estimation of growing stock (GS) in the
-#               Solling area, using Reviere as the small-area units.
+#               selected area, using Reviere as the small-area units.
 #               It uses terrestrial sample plots, stratum information from
 #               BI phase-1 data, and wall-to-wall prediction/raster metrics.
 # Author:       Georgia Reeves
