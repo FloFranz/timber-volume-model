@@ -24,6 +24,7 @@ source('src/setup.R', local = TRUE)
 ```
 
 This document documents the **wall-to-wall growing stock modeling in the Solling area**: it briefly describes each script and shows selected maps and plots built from the same outputs the scripts write.  
+The scripts themselves are configurable for other areas via the user settings sections, but this report intentionally presents the Solling as an example area.
 
 | Step | Script | Main outputs (under `data/processed_data/` or `output/`) |
 |------|--------|------------------------------------------------------------|
