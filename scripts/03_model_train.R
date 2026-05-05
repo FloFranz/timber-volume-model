@@ -9,8 +9,9 @@
 #------------------------------------------------------------------------------
 
 
-# source setup script
-source('src/setup.R', local = TRUE)
+# source setup and helper scripts
+source('src/setup.R', local = T)
+source('src/model_train_helpers.R', local = T)
 
 
 
@@ -20,8 +21,14 @@ source('src/setup.R', local = TRUE)
 # input data
 rs_plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS')
 
+# dataset identifier used in output file names
+dataset_id <- 'solling'
+
+# response variable (e.g. 'vol_ha' or 'sum_vol_ha')
+response_var <- 'vol_ha'
+
 # model output
-final_model_path <- file.path(processed_data_dir, 'global_rf_model.rds')
+final_model_path <- file.path(processed_data_dir, paste0('global_rf_model_', dataset_id, '.rds'))
 
 # reproducibility and split
 set_seed <- 123
@@ -51,180 +58,7 @@ final_nodesize <- 10
 mtry_tune_ntree <- 400
 
 
-# 02 - helper functions
-#-------------------------------------
-
-calc_rf_metrics <- function(observed, predicted) {
-  keep <- complete.cases(observed, predicted)
-  observed <- observed[keep]
-  predicted <- predicted[keep]
-
-  mse <- mean((observed - predicted)^2)
-  rmse <- sqrt(mse)
-  rmse_pct <- rmse / mean(observed)
-  rss <- sum((observed - predicted)^2)
-  tss <- sum((observed - mean(observed))^2)
-  r_squared <- 1 - rss / tss
-  bias <- mean(predicted - observed)
-
-  data.frame(
-    n = length(observed),
-    mse = mse,
-    rmse = rmse,
-    rmse_pct = rmse_pct,
-    r_squared = r_squared,
-    bias = bias
-  )
-}
-
-make_rf_formula <- function(response, predictors) {
-  as.formula(paste(response, '~', paste(predictors, collapse = ' + ')))
-}
-
-fit_rf <- function(train_data,
-                   predictors,
-                   response = 'vol_ha',
-                   ntree = 500,
-                   mtry = 3,
-                   nodesize = 10,
-                   seed = 123) {
-  set.seed(seed)
-  randomForest::randomForest(
-    formula = make_rf_formula(response, predictors),
-    data = train_data[, c(response, predictors), drop = FALSE],
-    importance = TRUE,
-    ntree = ntree,
-    mtry = mtry,
-    nodesize = nodesize
-  )
-}
-
-select_rf_variables <- function(train_data,
-                                test_data,
-                                full_predictors,
-                                response = 'vol_ha',
-                                subset_sizes = c(4, 5, 6, 7, 8, 10, 12, 15),
-                                rmse_tolerance = 0.02,
-                                ntree = 500,
-                                mtry = 3,
-                                nodesize = 10,
-                                seed = 123) {
-
-  # 1) fit full Random Forest model
-  max_rf <- fit_rf(
-    train_data = train_data,
-    predictors = full_predictors,
-    response = response,
-    ntree = ntree,
-    mtry = mtry,
-    nodesize = nodesize,
-    seed = seed
-  )
-
-  # 2) rank predictors by permutation importance (%IncMSE)
-  importance_mat <- randomForest::importance(max_rf, type = 1)
-  importance_df <- data.frame(
-    predictor = rownames(importance_mat),
-    inc_mse = importance_mat[, 1],
-    row.names = NULL
-  ) %>%
-    dplyr::arrange(dplyr::desc(inc_mse))
-
-  ranked_predictors <- importance_df$predictor
-
-  # 3) fit reduced models using top-k predictors
-  subset_sizes <- sort(unique(pmin(subset_sizes, length(full_predictors))))
-  subset_sizes <- subset_sizes[subset_sizes > 0]
-
-  selection_results <- lapply(subset_sizes, function(k) {
-    predictors_k <- ranked_predictors[seq_len(k)]
-
-    rf_k <- fit_rf(
-      train_data = train_data,
-      predictors = predictors_k,
-      response = response,
-      ntree = ntree,
-      mtry = min(mtry, length(predictors_k)),
-      nodesize = nodesize,
-      seed = seed
-    )
-
-    train_pred <- predict(rf_k, newdata = train_data)
-    test_pred <- predict(rf_k, newdata = test_data)
-
-    train_metrics <- calc_rf_metrics(train_data[[response]], train_pred)
-    test_metrics <- calc_rf_metrics(test_data[[response]], test_pred)
-
-    data.frame(
-      n_predictors = k,
-      predictors = paste(predictors_k, collapse = ', '),
-      train_rmse = train_metrics$rmse,
-      train_rmse_pct = train_metrics$rmse_pct,
-      train_r_squared = train_metrics$r_squared,
-      test_rmse = test_metrics$rmse,
-      test_rmse_pct = test_metrics$rmse_pct,
-      test_r_squared = test_metrics$r_squared,
-      test_bias = test_metrics$bias
-    )
-  }) %>%
-    dplyr::bind_rows()
-
-  # 4) select simplest model within RMSE tolerance
-  best_rmse <- min(selection_results$test_rmse, na.rm = TRUE)
-  rmse_cutoff <- best_rmse * (1 + rmse_tolerance)
-
-  selected_model_row <- selection_results %>%
-    dplyr::filter(test_rmse <= rmse_cutoff) %>%
-    dplyr::arrange(n_predictors, test_rmse) %>%
-    dplyr::slice(1)
-
-  selected_predictors <- strsplit(selected_model_row$predictors, ', ')[[1]]
-
-  list(
-    max_rf = max_rf,
-    variable_importance = importance_df,
-    selection_results = selection_results,
-    selected_model_row = selected_model_row,
-    selected_predictors = selected_predictors
-  )
-}
-
-plot_rf_validation <- function(observed, predicted, model_label = 'Global Random Forest') {
-  par(
-    mfrow = c(1, 2),
-    mar = c(5, 5, 2, 2),
-    las = 1,
-    pch = 19,
-    cex = 1.2
-  )
-
-  plot(
-    observed, predicted,
-    xlab = 'Observed',
-    ylab = paste(model_label, 'Predicted'),
-    main = '',
-    xlim = range(observed, predicted, na.rm = TRUE),
-    ylim = range(observed, predicted, na.rm = TRUE),
-    cex.lab = 1.2,
-    cex.axis = 1,
-    col = 'black'
-  )
-  abline(0, 1, col = 'red', lwd = 2, lty = 2)
-
-  plot(
-    predicted, observed - predicted,
-    xlab = paste(model_label, 'Predicted'),
-    ylab = 'Residuals (Observed - Predicted)',
-    main = '',
-    cex.lab = 1.2,
-    cex.axis = 1,
-    col = 'black'
-  )
-  abline(h = 0, col = 'red', lwd = 2, lty = 2)
-}
-
-
-# 03 - read and prepare data
+# 02 - read and prepare data
 #-------------------------------------
 
 # plot-level metrics already include key, kspnr and dominant_species
@@ -233,33 +67,60 @@ if (!file.exists(rs_plot_metrics_path)) {
 }
 plot_metrics_dataset <- readr::read_rds(rs_plot_metrics_path)
 
-# dominant_species as factor
+# dominant_species as factor (if available)
 # in plot metrics this can be encoded as 1 (LB) and 2 (NB)
-plot_metrics_dataset$dominant_species <- dplyr::case_when(
-  plot_metrics_dataset$dominant_species == 1 ~ 'LB',
-  plot_metrics_dataset$dominant_species == 2 ~ 'NB',
-  TRUE ~ as.character(plot_metrics_dataset$dominant_species)
-)
+if ('dominant_species' %in% names(plot_metrics_dataset)) {
+  plot_metrics_dataset$dominant_species <- dplyr::case_when(
+    plot_metrics_dataset$dominant_species == 1 ~ 'LB',
+    plot_metrics_dataset$dominant_species == 2 ~ 'NB',
+    T ~ as.character(plot_metrics_dataset$dominant_species)
+  )
+  
+  plot_metrics_dataset$dominant_species <- factor(
+    plot_metrics_dataset$dominant_species,
+    levels = c('NB', 'LB')
+  )
+}
 
-plot_metrics_dataset$dominant_species <- factor(
-  plot_metrics_dataset$dominant_species,
-  levels = c('NB', 'LB')
-)
+# validate response and available predictors
+plot_metrics_no_geom <- sf::st_drop_geometry(plot_metrics_dataset)
+if (!response_var %in% names(plot_metrics_no_geom)) {
+  stop(
+    'Configured response_var (\'', response_var,
+    '\') not found in input data. Available columns: ',
+    paste(names(plot_metrics_no_geom), collapse = ', ')
+  )
+}
+
+available_predictors <- intersect(full_rf_predictors, names(plot_metrics_no_geom))
+missing_predictors <- setdiff(full_rf_predictors, available_predictors)
+
+if (length(missing_predictors) > 0) {
+  warning(
+    'The following candidate predictors are missing and will be skipped: ',
+    paste(missing_predictors, collapse = ', ')
+  )
+}
+
+if (length(available_predictors) == 0) {
+  stop('None of the configured predictors are available in input data.')
+}
+
+cat('\n--- Model run settings ---\n')
+cat('dataset_id: ', dataset_id, '\n', sep = '')
+cat('response_var: ', response_var, '\n', sep = '')
+cat('n_predictors_available: ', length(available_predictors), '\n', sep = '')
+cat('predictors_available: ', paste(available_predictors, collapse = ', '), '\n', sep = '')
+cat('--------------------------\n\n')
 
 # modelling table with response + full candidate predictors
 global_model_data <- plot_metrics_dataset %>%
   sf::st_drop_geometry() %>%
-  dplyr::select(vol_ha, dplyr::all_of(full_rf_predictors)) %>%
+  dplyr::select(dplyr::all_of(c(response_var, available_predictors))) %>%
   na.omit()
 
-required_model_columns <- c('vol_ha', full_rf_predictors)
-missing_model_columns <- setdiff(required_model_columns, names(sf::st_drop_geometry(plot_metrics_dataset)))
-if (length(missing_model_columns) > 0) {
-  stop('Missing required model columns in input data: ', paste(missing_model_columns, collapse = ', '))
-}
 
-
-# 04 - train/test split
+# 03 - train/test split
 #-------------------------------------
 
 if (!is.numeric(train_fraction) || length(train_fraction) != 1 ||
@@ -291,14 +152,14 @@ cat('Dominant species counts in testing data:\n')
 print(table(global_test$dominant_species))
 
 
-# 05 - automated variable selection
+# 04 - automated variable selection
 #-------------------------------------
 
 rf_selection <- select_rf_variables(
   train_data = global_train,
   test_data = global_test,
-  full_predictors = full_rf_predictors,
-  response = 'vol_ha',
+  full_predictors = available_predictors,
+  response = response_var,
   subset_sizes = subset_sizes_to_test,
   rmse_tolerance = rmse_tolerance,
   ntree = selection_ntree,
@@ -313,6 +174,11 @@ RF_variable_importance <- rf_selection$variable_importance
 RF_selection_results <- rf_selection$selection_results
 RF_selected_model_row <- rf_selection$selected_model_row
 selected_predictors <- rf_selection$selected_predictors
+
+cat('\n--- Selected model predictors ---\n')
+cat('n_predictors_selected: ', length(selected_predictors), '\n', sep = '')
+cat('predictors_selected: ', paste(selected_predictors, collapse = ', '), '\n', sep = '')
+cat('---------------------------------\n\n')
 
 cat('\nVariable importance from full/max RF model:\n')
 print(RF_variable_importance)
@@ -329,14 +195,16 @@ print(RF_selected_model_row)
 randomForest::varImpPlot(Global_train_RF_max, type = 1)
 
 
-# 06 - final global RF mtry tuning and model fitting
+# 05 - final global RF mtry tuning and model fitting
 #-------------------------------------
 
 global_train_df <- as.data.frame(global_train)
-global_train_df$dominant_species <- as.factor(global_train_df$dominant_species)
+if ('dominant_species' %in% names(global_train_df)) {
+  global_train_df$dominant_species <- as.factor(global_train_df$dominant_species)
+}
 
-x_train <- global_train_df[, selected_predictors, drop = FALSE]
-y_train <- global_train_df$vol_ha
+x_train <- global_train_df[, selected_predictors, drop = F]
+y_train <- global_train_df[[response_var]]
 
 set.seed(set_seed)
 mtry_tune <- randomForest::tuneRF(
@@ -345,18 +213,18 @@ mtry_tune <- randomForest::tuneRF(
   stepFactor = 1.5,
   improve = 0.01,
   ntreeTry = mtry_tune_ntree,
-  trace = TRUE
+  trace = T
 )
 
 best_mtry <- mtry_tune[which.min(mtry_tune[, 'OOBError']), 'mtry']
 
-selected_with_response <- c('vol_ha', selected_predictors)
-x_train <- global_train_df[, selected_with_response, drop = FALSE]
+selected_with_response <- c(response_var, selected_predictors)
+x_train <- global_train_df[, selected_with_response, drop = F]
 
 global_rf_model <- randomForest::randomForest(
-  formula = make_rf_formula('vol_ha', selected_predictors),
+  formula = make_rf_formula(response_var, selected_predictors),
   data = x_train,
-  importance = TRUE,
+  importance = T,
   ntree = final_ntree,
   mtry = best_mtry,
   nodesize = final_nodesize
@@ -370,13 +238,13 @@ print(randomForest::importance(global_rf_model))
 randomForest::varImpPlot(global_rf_model, type = 1)
 
 
-# 07 - model performance (training and testing)
+# 06 - model performance (training and testing)
 #-------------------------------------
 
 # training predictions and metrics
 RF_Global_train_pred <- predict(global_rf_model, newdata = global_train)
 RF_Global_train_metrics <- calc_rf_metrics(
-  observed = global_train$vol_ha,
+  observed = global_train[[response_var]],
   predicted = RF_Global_train_pred
 )
 
@@ -388,7 +256,7 @@ RF_Global_pred <- predict(global_rf_model, newdata = global_test)
 summary(RF_Global_pred)
 
 RF_Global_test_metrics <- calc_rf_metrics(
-  observed = global_test$vol_ha,
+  observed = global_test[[response_var]],
   predicted = RF_Global_pred
 )
 
@@ -403,13 +271,13 @@ RF_Global_bias <- RF_Global_test_metrics$bias
 
 # validation plots
 plot_rf_validation(
-  observed = global_test$vol_ha,
+  observed = global_test[[response_var]],
   predicted = RF_Global_pred,
   model_label = 'Global RF'
 )
 
 
-# 08 - save final model
+# 07 - save final model
 #-------------------------------------
 
 if (!file.exists(final_model_path)) {
@@ -422,25 +290,25 @@ if (!file.exists(final_model_path)) {
 }
 
 
-# 09 - optional exports
+# 08 - optional exports
 #-------------------------------------
 
 write.csv(
   RF_variable_importance,
-  file.path(processed_data_dir, 'RF_full_model_variable_importance.csv'),
-  row.names = FALSE
+  file.path(processed_data_dir, paste0('RF_full_model_variable_importance_', dataset_id, '.csv')),
+  row.names = F
 )
 
 write.csv(
   RF_selection_results,
-  file.path(processed_data_dir, 'RF_automated_variable_selection_results.csv'),
-  row.names = FALSE
+  file.path(processed_data_dir, paste0('RF_automated_variable_selection_results_', dataset_id, '.csv')),
+  row.names = F
 )
 
 write.csv(
   data.frame(selected_predictors = selected_predictors),
-  file.path(processed_data_dir, 'global_rf_selected_predictors.csv'),
-  row.names = FALSE
+  file.path(processed_data_dir, paste0('global_rf_selected_predictors_', dataset_id, '.csv')),
+  row.names = F
 )
 
 
