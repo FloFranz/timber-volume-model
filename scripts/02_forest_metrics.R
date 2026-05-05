@@ -39,14 +39,23 @@ forest_type_paths <- list.files(
 # forestry office filter (set to numeric(0) to keep all)
 selected_forstaemter <- c(268, 254)
 
+# dataset identifier used in output file names
+dataset_id <- 'solling'
+
 # key column in BI input file (e.g. 'key' for vol_stp.gpkg)
 bi_key_col <- 'key'
 
 # output files
-plot_metrics_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling.RDS')
-metrics_w2w_path <- file.path(processed_data_dir, 'metrics_w2w_solling.tif')
-metrics_w2w_forest_type_path <- file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
-plot_metrics_forest_type_path <- file.path(processed_data_dir, 'plot_metrics_pc_solling_incl_forest_type.RDS')
+plot_metrics_path <- file.path(processed_data_dir, paste0('plot_metrics_pc_', dataset_id, '.RDS'))
+metrics_w2w_path <- file.path(processed_data_dir, paste0('metrics_w2w_', dataset_id, '.tif'))
+metrics_w2w_forest_type_path <- file.path(
+  processed_data_dir,
+  paste0('metrics_w2w_', dataset_id, '_incl_forest_type.tif')
+)
+plot_metrics_forest_type_path <- file.path(
+  processed_data_dir,
+  paste0('plot_metrics_pc_', dataset_id, '_incl_forest_type.RDS')
+)
 
 
 # 02 - input checks and data reading
