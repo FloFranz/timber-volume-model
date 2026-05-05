@@ -10,23 +10,29 @@
 
 
 # source setup script
-source('src/setup.R', local = TRUE)
+source('src/setup.R', local = T)
 
 
 
 # 01 - user settings
 #-------------------------------------
 
+# dataset identifier used in input/output file names
+dataset_id <- 'solling'
+
 # input model and wall-to-wall metrics
-model_path <- file.path(processed_data_dir, 'global_rf_model.rds')
-w2w_metrics_path <- file.path(processed_data_dir, 'metrics_w2w_solling_incl_forest_type.tif')
+model_path <- file.path(processed_data_dir, paste0('global_rf_model_', dataset_id, '.rds'))
+w2w_metrics_path <- file.path(
+  processed_data_dir,
+  paste0('metrics_w2w_', dataset_id, '_incl_forest_type.tif')
+)
 wefl_path <- file.path(raw_data_dir, 'orga', 'WEFL_2025.shp')
 bi_plots_path <- file.path(processed_data_dir, 'vol_stp.gpkg')
 
 # outputs
-w2w_prediction_output_path <- file.path(output_dir, 'global_rf_prediction.tif')
-file_bi_plots_wefl <- file.path(processed_data_dir, 'vol_stp_joined_with_wefl.gpkg')
-file_vol_stp_vs_pred_vol <- file.path(processed_data_dir, 'vol_stp_vs_pred_vol.gpkg')
+w2w_prediction_output_path <- file.path(output_dir, paste0('global_rf_prediction_', dataset_id, '.tif'))
+file_bi_plots_wefl <- file.path(processed_data_dir, paste0('vol_stp_joined_with_wefl_', dataset_id, '.gpkg'))
+file_vol_stp_vs_pred_vol <- file.path(processed_data_dir, paste0('vol_stp_vs_pred_vol_', dataset_id, '.gpkg'))
 
 # extraction settings
 plot_buffer_radius_m <- 13
